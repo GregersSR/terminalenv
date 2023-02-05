@@ -1,0 +1,7 @@
+alias ll='ls -laF'
+alias cat='batcat'
+alias vim='nvim'
+alias config='/usr/bin/git --git-dir=$HOME/.myconf/ --work-tree=$HOME'
+alias brightness='xrandr --output eDP-1 --brightness'
+alias info='info --vi-keys'
+alias fsi='dotnet fsi -r ~/.local/bin/fsharp/FsLexYacc.Runtime.dll'
