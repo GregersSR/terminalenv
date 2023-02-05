@@ -6,9 +6,15 @@ import sys
 from pathlib import Path
 import logging
 import time
+from argparse import ArgumentParser
 
 REQUIRED = ["git"]
+INSTALL = ["zsh"]
 HERE = Path(os.path.realpath(__file__)).parent
+BINARY2PACKAGE = {
+    'git': 'git',
+    'zsh': 'zsh',
+}
 
 def run(*args, **kwargs):
     p = subprocess.run(*args, **kwargs)
@@ -18,6 +24,14 @@ def run(*args, **kwargs):
 def fail(msg, code=1):
     logging.error(msg)
     sys.exit(code)
+
+def create_parser() -> ArgumentParser:
+    parser = ArgumentParser(
+            prog = sys.argv[0],
+            description = "Install script for terminal environment"
+            )
+    parser.add_argument("--packages", action='store_true', help="Also install packages (from apt)")
+    return parser
 
 def query_yes_no(question, default=True) -> bool:
     """Ask a yes/no question via input() and return their answer.
@@ -58,7 +72,7 @@ def backup(path: Path):
 def ensure_link(target: Path, link_name: Path):
     if link_name.exists():
         if link_name.samefile(target):
-            logging.debug(f"Link {link_name} -> {target} already exists")
+            logging.info(f"Link {link_name} -> {target} already exists")
             return
         backup(link_name)
     link_name.symlink_to(target)
@@ -68,17 +82,21 @@ def ensure_link(target: Path, link_name: Path):
 def main():
     if os.getuid() == 0:
         fail("Do not run as root")
-    missing_dependencies = missing_depends(REQUIRED)
+    missing_dependencies = missing_pkgs(REQUIRED)
     if missing_dependencies:
         fail(f"Missing the following dependencies in PATH: {missing_dependencies}")
 
     logging.basicConfig(level=logging.INFO)
 
-    apt_update()
-    install_zsh()
-    setup_ssh()
+    args = create_parser().parse_args()
 
-def missing_depends(dependencies: List[str]) -> List[str]:
+    if args.packages:
+        install_packages()
+    setup_zsh()
+    setup_ssh()
+    setup_dotconfig()
+
+def missing_pkgs(dependencies: List[str]) -> List[str]:
     failures = list()
     for dependency in dependencies:
         p = subprocess.run(["which", dependency], capture_output=True)
@@ -95,11 +113,21 @@ def apt_install(pkgs):
     logging.info(f"Installing the following packages: {pkgs}")
     run(["sudo", "apt-get", "install", *pkgs])
 
-def install_zsh():
-    """Installs everything related to zsh
-    1) Install zsh
+def install_packages():
+    missing = missing_pkgs(INSTALL)
+    if missing:
+        logging.info(f"Will install the following packages: {missing}")
+        apt_update()
+        apt_install(missing)
+    else:
+        logging.info("Nothing to install")
+
+
+def setup_zsh():
+    """Sets up everything related to zsh
+    1) Symlinks .zshrc
+    2) Clones oh-my-zsh
     """
-    apt_install("zsh")
     terminalenv_zshrc = HERE / "zsh/.zshrc"
     zshrc = Path.home() / ".zshrc"
     ensure_link(terminalenv_zshrc, zshrc)
@@ -113,15 +141,25 @@ def install_zsh():
 
     
 def setup_ssh():
-    """Installs a link in ~/.ssh/config
-    
-    If that is currently a link, do nothing.
-    If it is currently a file, move it to ~/.ssh/config-{TS}
-    """
+    """Installs a link in ~/.ssh/config"""
+
     ssh_folder = Path.home() / ".ssh"
     ssh_config = ssh_folder / "config"
     terminalenv_ssh_config = HERE / "ssh/config"
     ensure_link(terminalenv_ssh_config, ssh_config)
+
+def setup_dotconfig():
+    """For each directory in terminalenv/config, makes a symlink with the same name in ~/.config"""
+
+    cfg_dir = HERE / "config"
+    dotcfg = Path.home() / ".config"
+
+    for d in cfg_dir.iterdir():
+        if not d.is_dir():
+            continue
+        link_name = dotcfg / d.name
+        ensure_link(d, link_name)
+
 
 if __name__ == "__main__":
     main()
