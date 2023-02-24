@@ -1,1 +1,2 @@
+Include ~/.ssh/config.d/*
 Include ~/terminalenv/ssh/config.d/*
