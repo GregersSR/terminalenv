@@ -7,13 +7,12 @@ return require('packer').startup(function(use)
   -- Packer can manage itself
   use 'wbthomason/packer.nvim'
   use {
-  'mrcjkb/haskell-tools.nvim',
-  requires = {
-    'neovim/nvim-lspconfig',
-    'nvim-lua/plenary.nvim',
-    'nvim-telescope/telescope.nvim', -- optional
-  },
-  -- tag = 'x.y.z' -- [^1]
-}
+    'mrcjkb/haskell-tools.nvim',
+    requires = {
+      'nvim-lua/plenary.nvim',
+      'nvim-telescope/telescope.nvim', -- optional
+    },
+    branch = '1.x.x',
+  }
 end)
 
