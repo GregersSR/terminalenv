@@ -1,4 +1,4 @@
-alias ll='ls -laF'
+alias ll='ls -lah'
 alias cat='batcat'
 alias vim='nvim'
 alias brightness='xrandr --output eDP-1 --brightness'
