@@ -33,6 +33,7 @@
     ll = "ls -lAh";
     info = "info --vi-keys";
     grep = "grep --color=auto --exclude-dir={.git,.idea}";
+    cat = "bat";
   };
 
   # Home Manager can also manage your environment variables through
