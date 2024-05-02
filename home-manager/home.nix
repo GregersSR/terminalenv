@@ -34,6 +34,7 @@
     info = "info --vi-keys";
     grep = "grep --color=auto --exclude-dir={.git,.idea}";
     cat = "bat";
+    sum = "paste -sd+ | bc";
   };
 
   # Home Manager can also manage your environment variables through
