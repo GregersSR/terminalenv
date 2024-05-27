@@ -26,10 +26,6 @@
     pkgs.cargo
   ];
 
-  home.file = {
-      ".config/nvim".source = ../config/nvim;
-  };
-
   home.shellAliases = {
     ll = "ls -lAh";
     info = "info --vi-keys";
@@ -57,6 +53,18 @@
   home.sessionVariables = {
     VISUAL = "nvim";
     CDPATH = "..";
+  };
+
+  nix = {
+    package = pkgs.nix;
+    settings.experimental-features = [ "nix-command" "flakes" ];
+  };
+
+  xdg = {
+    enable = true;
+    configFile = {
+      nvim.source = ../config/nvim;
+    };
   };
 
   # Let Home Manager install and manage itself.
