@@ -55,7 +55,6 @@
   #  /etc/profiles/per-user/gsr/etc/profile.d/hm-session-vars.sh
   #
   home.sessionVariables = {
-    EDITOR = "nvim";
     VISUAL = "nvim";
     CDPATH = "..";
   };
@@ -66,6 +65,13 @@
   programs.neovim = {
     enable = true;
     vimAlias = true;
+    defaultEditor = true;
+    plugins = with pkgs.vimPlugins; [
+      plenary-nvim
+      diffview-nvim
+      telescope-nvim
+      neogit
+    ];
   };
 
   programs.bat.enable = true;
@@ -87,7 +93,7 @@
     extraConfig = {
       core = {
         autocrlf = "input";
-	editor = "nvim";
+	      editor = "nvim";
       };
       pull.ff = "only";
       init.defaultBranch = "main";
