@@ -7,7 +7,7 @@ REPO_FILE="$SCRIPT_DIR/home.nix"
 
 if [[ -L "$CONFIG_HOME_FILE" ]]
 then
-	if [[ "$(realpath ${CONFIG_HOME_FILE})" == "$REPO_FILE" ]]
+	if [[ "$(realpath "${CONFIG_HOME_FILE}")" == "$REPO_FILE" ]]
 	then
 		echo "Link already exists, did nothing"
 		exit 0
