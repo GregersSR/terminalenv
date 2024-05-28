@@ -24,6 +24,7 @@
     #   echo "Hello, ${config.home.username}!"
     # '')
     pkgs.cargo
+    pkgs.gef
   ];
 
   home.shellAliases = {
@@ -32,6 +33,7 @@
     grep = "grep --color=auto --exclude-dir={.git,.idea}";
     cat = "bat";
     sum = "paste -sd+ | bc";
+    gdb = "gef";
   };
 
   home.sessionVariables = {
@@ -59,6 +61,7 @@
     vimAlias = true;
     defaultEditor = true;
     plugins = with pkgs.vimPlugins; [
+      nvim-treesitter.withAllGrammars
       plenary-nvim
       diffview-nvim
       telescope-nvim
