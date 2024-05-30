@@ -36,9 +36,23 @@
     gdb = "gef";
   };
 
+  # todo: sessionPath + sessionVars are broken
+  home.sessionPath = [
+    "$HOME/.local/bin"
+  ];
+
   home.sessionVariables = {
     VISUAL = "nvim";
     CDPATH = "..";
+    MANPAGER = "sh -c 'col -bx | batcat -l man -p'";
+    MANROFFOPT = "-c";
+  };
+
+  home.file = {
+    ".local/bin/update-packages" = {
+      source = ./scripts/update-packages.sh;
+      executable = true;
+    };
   };
 
   nix = {
