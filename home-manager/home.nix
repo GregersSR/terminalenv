@@ -36,13 +36,12 @@
     gdb = "gef";
   };
 
-  # todo: sessionPath + sessionVars are broken
+  # sessionPath and sessionVariables only take effect in a new login session
   home.sessionPath = [
     "$HOME/.local/bin"
   ];
 
   home.sessionVariables = {
-    VISUAL = "nvim";
     CDPATH = "..";
     MANPAGER = "sh -c 'col -bx | batcat -l man -p'";
     MANROFFOPT = "-c";
