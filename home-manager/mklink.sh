@@ -28,4 +28,5 @@ link_file() {
 
 }
 
+mkdir -p "${CONFIG_HOME}/home-manager"
 link_file "$REPO_FILE" "$CONFIG_HOME_FILE"
