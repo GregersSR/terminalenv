@@ -1,11 +1,6 @@
 { config, pkgs, ... }:
 
 {
-  home = {
-    username = "gsr";
-    homeDirectory = "/home/gsr";
-    stateVersion = "23.11";
-  };
 
   # The home.packages option allows you to install Nix packages into your
   # environment.
