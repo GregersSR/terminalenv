@@ -91,8 +91,6 @@
 
   programs.git = {
     enable = true;
-    userName = "Gregers Rørdam";
-    userEmail = "gregers@rordam.dk";
     extraConfig = {
       core = {
         autocrlf = "input";
