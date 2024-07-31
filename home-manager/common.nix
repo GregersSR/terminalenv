@@ -38,7 +38,7 @@
 
   home.sessionVariables = {
     CDPATH = "..";
-    MANPAGER = "sh -c 'col -bx | batcat -l man -p'";
+    MANPAGER = "sh -c 'col -bx | bat -l man -p'";
     MANROFFOPT = "-c";
   };
 
