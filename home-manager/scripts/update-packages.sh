@@ -8,4 +8,5 @@ function checkAndPrint {
 checkAndPrint apt-get && sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get autoremove -y
 checkAndPrint snap && sudo snap refresh
 checkAndPrint fwupdmgr && sudo fwupdmgr update
+checkAndPrint flatpak && flatpak update
 checkAndPrint pacstall && sudo pacstall -U && sudo pacstall -Up
