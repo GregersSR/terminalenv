@@ -11,4 +11,6 @@
     userName = "Gregers Rørdam";
     userEmail = "gregers@rordam.dk";
   };
+
+  programs.gh.enable = true;
 }
