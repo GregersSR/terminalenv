@@ -54,13 +54,6 @@
     settings.experimental-features = [ "nix-command" "flakes" ];
   };
 
-  xdg = {
-    enable = true;
-    configFile = {
-      nvim.source = ./config/nvim;
-    };
-  };
-
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 
@@ -68,6 +61,10 @@
     enable = true;
     vimAlias = true;
     defaultEditor = true;
+    extraConfig = ''
+    set number
+    set relativenumber
+    '';	
     plugins = with pkgs.vimPlugins; [
       nvim-treesitter.withAllGrammars
       plenary-nvim
