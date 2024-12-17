@@ -26,6 +26,7 @@
     ll = "ls -lAh";
     info = "info --vi-keys";
     grep = "grep --color=auto --exclude-dir={.git,.idea}";
+    zgrep = "zgrep --color=always";
     cat = "bat";
     sum = "paste -sd+ | bc";
     gdb = "gef";
