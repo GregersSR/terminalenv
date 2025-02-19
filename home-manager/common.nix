@@ -23,7 +23,7 @@
   ];
 
   home.shellAliases = {
-    ll = "ls -lAh";
+    ll = "ls -lAgh";
     info = "info --vi-keys";
     grep = "grep --color=auto --exclude-dir={.git,.idea}";
     zgrep = "zgrep --color=always";
