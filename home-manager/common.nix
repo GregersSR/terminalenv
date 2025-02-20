@@ -29,7 +29,6 @@
     zgrep = "zgrep --color=always";
     cat = "bat";
     sum = "paste -sd+ | bc";
-    gdb = "gef";
   };
 
   # sessionPath and sessionVariables only take effect in a new login session
