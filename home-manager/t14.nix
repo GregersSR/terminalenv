@@ -13,4 +13,5 @@
   };
 
   programs.gh.enable = true;
+  programs.sagemath.enable = true;
 }
