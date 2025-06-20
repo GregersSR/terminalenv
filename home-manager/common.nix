@@ -5,25 +5,14 @@
   # The home.packages option allows you to install Nix packages into your
   # environment.
   home.packages = [
-
-    # # It is sometimes useful to fine-tune packages, for example, by applying
-    # # overrides. You can do that directly here, just don't forget the
-    # # parentheses. Maybe you want to install Nerd Fonts with a limited number of
-    # # fonts?
-    # (pkgs.nerdfonts.override { fonts = [ "FantasqueSansMono" ]; })
-
-    # # You can also create simple shell scripts directly inside your
-    # # configuration. For example, this adds a command 'my-hello' to your
-    # # environment:
-    # (pkgs.writeShellScriptBin "my-hello" ''
-    #   echo "Hello, ${config.home.username}!"
-    # '')
     pkgs.cargo
     pkgs.gef
+    pkgs.git-annex
   ];
 
   home.shellAliases = {
     ll = "ls -lAgh";
+    l = "ls -lgh";
     info = "info --vi-keys";
     grep = "grep --color=auto --exclude-dir={.git,.idea}";
     zgrep = "zgrep --color=always";
