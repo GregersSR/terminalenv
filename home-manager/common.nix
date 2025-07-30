@@ -33,7 +33,7 @@
 
   home.file = {
     ".local/bin/update-packages" = {
-      source = ./scripts/update-packages.sh;
+      source = ../scripts/update-packages.sh;
       executable = true;
     };
   };
