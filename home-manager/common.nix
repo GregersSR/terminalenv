@@ -10,32 +10,17 @@
     pkgs.git-annex
   ];
 
-  home.shellAliases = {
-    ll = "ls -lAgh";
-    l = "ls -lgh";
-    info = "info --vi-keys";
-    grep = "grep --color=auto --exclude-dir={.git,.idea}";
-    zgrep = "zgrep --color=always";
-    cat = "bat";
-    sum = "paste -sd+ | bc";
-  };
-
   # sessionPath and sessionVariables only take effect in a new login session
-  home.sessionPath = [
-    "$HOME/.local/bin"
-  ];
-
-  home.sessionVariables = {
-    CDPATH = "..";
-    MANPAGER = "sh -c 'col -bx | bat -l man -p'";
-    MANROFFOPT = "-c";
-  };
-
   home.file = {
     ".local/bin/update-packages" = {
       source = ../scripts/update-packages.sh;
       executable = true;
     };
+  };
+
+  home.shell = {
+    enableBashIntegration = true;
+    enableZshIntegration = true;
   };
 
   nix = {
@@ -51,8 +36,7 @@
     vimAlias = true;
     defaultEditor = true;
     extraConfig = ''
-    set number
-    set relativenumber
+    source $TERMENV/home/nvim/settings.vim
     '';	
     plugins = with pkgs.vimPlugins; [
       nvim-treesitter.withAllGrammars
@@ -64,7 +48,11 @@
   };
 
   programs.bat.enable = true;
-  programs.eza.enable = true;
+  programs.eza = {
+    enable = true;
+    enableBashIntegration = false;
+    enableZshIntegration = true;
+  };
 
   programs.zsh = {
     enable = true;    
@@ -73,6 +61,16 @@
       plugins = ["git"];
       theme = "sunrise";
     };
+  };
+
+  programs.bash = {
+    enable = true;
+    bashrcExtra = ''
+    [ -f ~/terminalenv/home/bash/bashrc ] && source ~/terminalenv/home/bash/bashrc 
+    '';
+    profileExtra = ''
+    [ -f ~/terminalenv/home/profile ] && source ~/terminalenv/home/profile
+    '';
   };
 
   programs.git = {
@@ -96,7 +94,6 @@
 
   programs.direnv = {
     enable = true;
-    enableZshIntegration = true;
     nix-direnv.enable = true;
   };
 }
