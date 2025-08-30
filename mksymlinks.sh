@@ -44,6 +44,6 @@ link () {
 DOT_CONFIG="${XDG_CONFIG_HOME:-${HOME}/.config}"
 
 link "${TERMENV}/home/profile" "${HOME}/.profile"
-link "${TERMENV}/home-manager/flake.nix" "${DOT_CONFIG}/home-manager/flake.nix"
+link "${TERMENV}/flake.nix" "${DOT_CONFIG}/home-manager/flake.nix"
 
 exit $EXIT_CODE
