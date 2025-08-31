@@ -3,7 +3,7 @@ export EDITOR=nvim
 CDPATH=..
 
 if cmd_exists bat; then
-    export MANPAGER = "sh -c 'col -bx | bat -l man -p'";
-    export MANROFFOPT = "-c";
+    export MANPAGER="sh -c 'col -bx | bat -l man -p'";
+    export MANROFFOPT="-c";
 fi
     

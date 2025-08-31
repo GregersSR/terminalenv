@@ -5,6 +5,9 @@
     username = "gsr";
     homeDirectory = "/home/gsr";
     stateVersion = "24.11";
+    packages = [
+        pkgs.starship
+    ];
   };
 
   programs.git = {

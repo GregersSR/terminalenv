@@ -13,7 +13,7 @@
   # sessionPath and sessionVariables only take effect in a new login session
   home.file = {
     ".local/bin/update-packages" = {
-      source = ../scripts/update-packages.sh;
+      source = ./scripts/update-packages.sh;
       executable = true;
     };
   };
