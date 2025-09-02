@@ -1,9 +1,9 @@
 # Navigation
 alias -- '-'='cd -'
-alias ...='../..'
-alias ....='../../..'
-alias .....='../../../..'
-alias ......='../../../../..'
+alias '...'='../..'
+alias '....'='../../..'
+alias '.....'='../../../..'
+alias '......'='../../../../..'
 alias 1='cd -1'
 alias 2='cd -2'
 alias 3='cd -3'
@@ -54,17 +54,17 @@ alias gswm='git switch $(git_main_branch)'
 
 # ls
 if cmd_exists eza; then
-	alias ls='eza'
-	alias l='eza -lgh'
-	alias la='eza -a'
-	alias ll='eza -lgAh'
-	alias lt='eza --tree'
+	alias ls='eza '
+	alias l='eza -lgh '
+	alias la='eza -a '
+	alias ll='eza -lgAh '
+	alias lt='eza --tree '
 else
-	alias ls='ls --color=auto'
-	alias l='ls -lh'
-	alias la='ls -a'
-	alias ll='ls -lah'
-	alias lt='tree'
+	alias ls='ls --color=auto '
+	alias l='ls -lh '
+	alias la='ls -a '
+	alias ll='ls -lah '
+	alias lt='tree '
 fi
 
 if cmd_exists home-manager; then
