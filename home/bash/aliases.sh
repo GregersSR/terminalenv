@@ -24,6 +24,7 @@ alias zgrep='zgrep --color=auto'
 # Git
 alias g=git
 alias ga='git add'
+alias gaa='git add --all'
 alias gc='git commit --verbose'
 alias 'gc!'='git commit --verbose --amend'
 alias gcB='git checkout -B'
