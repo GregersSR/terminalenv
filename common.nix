@@ -8,6 +8,8 @@
     pkgs.cargo
     pkgs.gef
     pkgs.git-annex
+    pkgs.jqp
+    pkgs.git-filter-repo
   ];
 
   # sessionPath and sessionVariables only take effect in a new login session
