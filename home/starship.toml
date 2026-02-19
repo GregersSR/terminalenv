@@ -30,7 +30,7 @@ $netns $character"""
 add_newline = false
 
 [character]
-success_symbol = '[»](bold green)'
+success_symbol = '[»](bold magenta)'
 error_symbol = '[»](bold red)'
 
 [cmd_duration]
