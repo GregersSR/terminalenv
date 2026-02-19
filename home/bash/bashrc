@@ -49,4 +49,5 @@ source "${HERE}/lib.sh"
 source "${HERE}/env.sh"
 source "${HERE}/aliases.sh"
 source "${HERE}/prompt.sh"
+source "${HERE}/path.sh"
 unset HERE
