@@ -30,7 +30,7 @@ $netns $character"""
 add_newline = false
 
 [character]
-success_symbol = '[»](bold magenta)'
+success_symbol = '[»](bold purple)'
 error_symbol = '[»](bold red)'
 
 [cmd_duration]
@@ -38,12 +38,15 @@ format = "took [$duration]($style)\n"
 
 [directory]
 truncate_to_repo = false
+style = 'bold bright-white'
 
 [git_branch]
 symbol = ''
 style = 'yellow'
 format = '[‹](yellow)[$symbol$branch(:$remote_branch)]($style)'
 
+# mangler "dirty" (* i ohmyzsh), så "untracked" er ?).
+# manger 
 [git_status]
 format = "$untracked $conflicted$stashed$deleted$renamed$modified$typechanged$staged$ahead_behind[›](yellow)"
 untracked = '[*](red)'
