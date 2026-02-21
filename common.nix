@@ -2,8 +2,18 @@
 
 {
 
-  # The home.packages option allows you to install Nix packages into your
-  # environment.
+  nix = {
+    package = pkgs.nix;
+    settings.experimental-features = [ "nix-command" "flakes" ];
+  };
+
+  # Let Home Manager install and manage itself.
+  programs.home-manager.enable = true;
+
+  # Provide man pages for installed programs, but use system man.
+  #home.extraOutputsToInstall = [ "man" ];
+  programs.man.enable = false;
+
   home.packages = [
     pkgs.cargo
     pkgs.gef
@@ -12,7 +22,6 @@
     pkgs.git-filter-repo
   ];
 
-  # sessionPath and sessionVariables only take effect in a new login session
   home.file = {
     ".local/bin/update-packages" = {
       source = ./scripts/update-packages.sh;
@@ -25,13 +34,6 @@
     enableZshIntegration = true;
   };
 
-  nix = {
-    package = pkgs.nix;
-    settings.experimental-features = [ "nix-command" "flakes" ];
-  };
-
-  # Let Home Manager install and manage itself.
-  programs.home-manager.enable = true;
 
   programs.neovim = {
     enable = true;
