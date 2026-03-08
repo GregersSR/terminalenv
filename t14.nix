@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, localpkgs, ... }:
 
 {
   home = {
@@ -6,7 +6,7 @@
     homeDirectory = "/home/gsr";
     stateVersion = "24.11";
     packages = [
-        pkgs.starship
+        localpkgs.starship
     ];
   };
 

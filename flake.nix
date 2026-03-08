@@ -14,6 +14,10 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
+      packages = import ./packages pkgs;
+      extraSpecialArgs = {
+        localpkgs = packages;
+      };
       modules = {
         common = ./common.nix;
         dell-xps-15 = ./dell-xps-15.nix;
@@ -22,6 +26,7 @@
     in {
       homeConfigurations."gsr" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
+        inherit extraSpecialArgs;
 
         # Specify your home configuration modules here, for example,
         # the path to your home.nix.

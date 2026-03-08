@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, localpkgs, ... }:
 
 {
 
@@ -11,7 +11,7 @@
   programs.home-manager.enable = true;
 
   # Provide man pages for installed programs, but use system man.
-  #home.extraOutputsToInstall = [ "man" ];
+  home.extraOutputsToInstall = [ "man" ];
   programs.man.enable = false;
 
   home.packages = [
@@ -20,6 +20,7 @@
     pkgs.git-annex
     pkgs.jqp
     pkgs.git-filter-repo
+    pkgs.pixi
   ];
 
   home.file = {
@@ -35,69 +36,75 @@
   };
 
 
-  programs.neovim = {
-    enable = true;
-    vimAlias = true;
-    defaultEditor = true;
-    extraConfig = ''
-    source $TERMENV/home/nvim/settings.vim
-    '';	
-    plugins = with pkgs.vimPlugins; [
-      nvim-treesitter.withAllGrammars
-      plenary-nvim
-      diffview-nvim
-      telescope-nvim
-      neogit
-    ];
-  };
-
-  programs.bat.enable = true;
-  programs.eza = {
-    enable = true;
-    enableBashIntegration = false;
-    enableZshIntegration = true;
-  };
-
-  programs.zsh = {
-    enable = true;    
-    oh-my-zsh = {
+  programs = {
+    neovim = {
       enable = true;
-      plugins = ["git"];
-      theme = "sunrise";
+      vimAlias = true;
+      defaultEditor = true;
+      extraConfig = ''
+      source $TERMENV/home/nvim/settings.vim
+      '';	
+      plugins = with pkgs.vimPlugins; [
+        nvim-treesitter.withAllGrammars
+        plenary-nvim
+        diffview-nvim
+        telescope-nvim
+        neogit
+      ];
     };
-  };
 
-  programs.bash = {
-    enable = true;
-    bashrcExtra = ''
-    [ -f ~/terminalenv/home/bash/bashrc ] && source ~/terminalenv/home/bash/bashrc 
-    '';
-    profileExtra = ''
-    [ -f ~/terminalenv/home/profile ] && source ~/terminalenv/home/profile
-    '';
-  };
+    bat.enable = true;
+    eza = {
+      enable = true;
+      enableBashIntegration = false;
+      enableZshIntegration = true;
+    };
 
-  programs.git = {
-    enable = true;
-    extraConfig = {
-      core = {
-        autocrlf = "input";
-	      editor = "nvim";
+    zsh = {
+      enable = true;
+      oh-my-zsh = {
+        enable = true;
+        plugins = ["git"];
+        theme = "sunrise";
       };
-      pull.ff = "only";
-      init.defaultBranch = "main";
     };
-    difftastic.enable = true;
-  };
 
-  programs.ssh = {
-    enable = true;
-    hashKnownHosts = false;
-    includes = [ "config.d/*" ];
-  };
+    bash = {
+      enable = true;
+      bashrcExtra = ''
+      [ -f ~/terminalenv/home/bash/bashrc ] && source ~/terminalenv/home/bash/bashrc 
+      '';
+      profileExtra = ''
+      [ -f ~/terminalenv/home/profile ] && source ~/terminalenv/home/profile
+      '';
+    };
 
-  programs.direnv = {
-    enable = true;
-    nix-direnv.enable = true;
+    git = {
+      enable = true;
+      settings = {
+        core = {
+          autocrlf = "input";
+          editor = "nvim";
+        };
+        pull.ff = "only";
+        init.defaultBranch = "main";
+      };
+    };
+
+    ssh = {
+      enable = true;
+      hashKnownHosts = false;
+      includes = [ "config.d/*" ];
+    };
+
+    direnv = {
+      enable = true;
+      nix-direnv.enable = true;
+    };
+
+    difftastic = {
+      enable = true;
+      git.enable = true;
+    };
   };
 }
