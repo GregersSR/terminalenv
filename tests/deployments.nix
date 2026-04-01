@@ -1,4 +1,4 @@
-{ pkgs, homeManager, packages, modules }:
+{ pkgs, homeManager, modules }:
 
 let
   repoRoot = ../.;
@@ -6,9 +6,6 @@ let
   mkCheckActivation = mode:
     (homeManager.lib.homeManagerConfiguration {
       inherit pkgs;
-      extraSpecialArgs = {
-        localpkgs = packages;
-      };
       modules = [
         modules.common
         {

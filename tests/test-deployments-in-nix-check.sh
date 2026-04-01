@@ -120,7 +120,7 @@ assert_core_paths() {
   [[ -x "$TEST_HOME/.local/bin/update-packages" ]] || fail "update-packages is not executable"
   [[ -L "$TEST_HOME/.config/terminalenv/bash" ]] || fail "Missing terminalenv bash symlink"
   [[ -f "$TEST_HOME/.config/terminalenv/bash/lib.sh" ]] || fail "Missing bash support file"
-  [[ -f "$TEST_HOME/.config/terminalenv/bash/completions/git" ]] || fail "Missing git completion support file"
+  [[ -f "$TEST_HOME/.config/terminalenv/bash/completions/git" ]] || fail "Missing vendored git completion script"
   [[ -L "$TEST_HOME/.config/terminalenv/nvim" ]] || fail "Missing terminalenv nvim symlink"
   [[ -f "$TEST_HOME/.config/terminalenv/nvim/settings.vim" ]] || fail "Missing nvim settings file"
 }

@@ -24,7 +24,7 @@
         t14 = ./t14.nix;
       };
       deploymentTests = import ./tests/deployments.nix {
-        inherit pkgs packages modules;
+        inherit pkgs modules;
         homeManager = home-manager;
       };
     in {

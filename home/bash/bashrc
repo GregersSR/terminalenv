@@ -61,7 +61,13 @@ else
   export TERMENV="${TERMENV:-$(dirname "$(dirname "$HERE")")}"
 fi
 
-source /usr/share/bash-completion/completions/git
+if [ -f "${HERE}/completions/git" ]; then
+  source "${HERE}/completions/git"
+elif [ -f /usr/share/bash-completion/completions/git ]; then
+  source /usr/share/bash-completion/completions/git
+else
+  echo "Warning: git completion not found" >&2
+fi
 export GIT_COMPLETION_CHECKOUT_NO_GUESS=1
 
 source "${HERE}/lib.sh"

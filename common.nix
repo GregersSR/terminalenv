@@ -1,4 +1,4 @@
-{ config, pkgs, localpkgs, ... }:
+{ config, pkgs, ... }:
 
 {
   imports = [ ./modules/symlinked-home-files.nix ];

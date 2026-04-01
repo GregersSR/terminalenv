@@ -46,7 +46,7 @@ assert_core_files_exist() {
   [[ -f "$XDG_CONFIG_HOME/home-manager/flake.nix" ]] || fail "Missing Home Manager flake link"
   [[ -d "$XDG_CONFIG_HOME/terminalenv/bash" ]] || fail "Missing terminalenv bash support directory"
   [[ -f "$XDG_CONFIG_HOME/terminalenv/bash/lib.sh" ]] || fail "Missing bash support file lib.sh"
-  [[ -f "$XDG_CONFIG_HOME/terminalenv/bash/completions/git" ]] || fail "Missing git completion support file"
+  [[ -f "$XDG_CONFIG_HOME/terminalenv/bash/completions/git" ]] || fail "Missing vendored git completion script"
   [[ -d "$XDG_CONFIG_HOME/terminalenv/nvim" ]] || fail "Missing terminalenv nvim support directory"
   [[ -f "$XDG_CONFIG_HOME/terminalenv/nvim/settings.vim" ]] || fail "Missing nvim settings file"
   [[ -d "$XDG_CONFIG_HOME/git/template" ]] || fail "Missing git template directory"
@@ -134,6 +134,47 @@ build_activation() {
     --argstr homeDirectory "$HOME"
 }
 
+build_external_consumer_activation() {
+  local consumer_root="$TEST_ROOT/external-consumer"
+
+  rm -rf "$consumer_root"
+  mkdir -p "$consumer_root"
+  ln -sfn /repo "$HOME/terminalenv"
+
+  cat > "$consumer_root/flake.nix" <<EOF
+{
+  inputs = {
+    dotfiles.url = "path:/repo";
+    nixpkgs.follows = "dotfiles/nixpkgs";
+    home-manager.follows = "dotfiles/home-manager";
+  };
+
+  outputs = { nixpkgs, home-manager, dotfiles, ... }:
+    let
+      system = "x86_64-linux";
+      pkgs = nixpkgs.legacyPackages.\${system};
+    in {
+      homeConfigurations.tester = home-manager.lib.homeManagerConfiguration {
+        inherit pkgs;
+        modules = [
+          dotfiles.modules.common
+          {
+            home.username = "tester";
+            home.homeDirectory = "${HOME}";
+            home.stateVersion = "24.11";
+          }
+        ];
+      };
+    };
+}
+EOF
+
+  nix --extra-experimental-features 'nix-command flakes' build \
+    --no-link \
+    --print-out-paths \
+    "$consumer_root#homeConfigurations.tester.activationPackage"
+}
+
 run_script_mode() {
   setup_home script
   log "Testing native symlink deployment"
@@ -153,7 +194,7 @@ run_home_manager_mode() {
   local activation
 
   setup_home "home-manager-$mode"
-  log "Testing Home Manager deployment ($mode)"
+  log "Testing Home Manager deployment ($mode via flake module output)"
   activation="$(build_activation "$mode")"
   "$activation/activate"
   assert_idempotent_activation "$activation"
@@ -166,8 +207,26 @@ run_home_manager_mode() {
   assert_git_config_template_dir
 }
 
+run_external_flake_module_mode() {
+  local activation
+
+  setup_home external-flake
+  log "Testing external flake path-ref consumer via dotfiles.modules.common"
+  activation="$(build_external_consumer_activation)"
+  "$activation/activate"
+  assert_idempotent_activation "$activation"
+  assert_links repo
+  assert_link_roots
+  assert_core_files_exist
+  assert_profile_works
+  assert_bash_works
+  assert_home_manager_profile_state
+  assert_git_config_template_dir
+}
+
 run_script_mode
 run_home_manager_mode out-of-store repo
 run_home_manager_mode store store
+run_external_flake_module_mode
 
 log "All deployment models passed"
