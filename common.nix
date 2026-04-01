@@ -86,8 +86,9 @@
 
     ssh = {
       enable = true;
-      hashKnownHosts = false;
+      enableDefaultConfig = false;
       includes = [ "config.d/*" ];
+      matchBlocks."*".hashKnownHosts = false;
     };
 
     direnv = {
