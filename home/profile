@@ -1,3 +1,6 @@
+# Shared root for native config files when they are installed under XDG.
+export TERMENV="${TERMENV:-${XDG_CONFIG_HOME:-$HOME/.config}/terminalenv}"
+
 # if running bash
 if [ -n "$BASH_VERSION" ]; then
     # include .bashrc if it exists

@@ -1,49 +1,102 @@
 #!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
 EXIT_CODE=0
 
 error () {
-    2>&1 echo "$@"
+    printf '%s\n' "$*" >&2
     EXIT_CODE=1
 }
 
-if [[ -z "$TERMENV" ]]; then
-    TERMENV="$(realpath $(dirname $BASH_SOURCE[0]))"
+resolve_path () {
+    local source_path="$1"
+    local link_dir
+
+    while [ -L "$source_path" ]; do
+        link_dir="$(cd -P "$(dirname "$source_path")" >/dev/null 2>&1 && pwd)"
+        source_path="$(readlink "$source_path")"
+        if [[ "$source_path" != /* ]]; then
+            source_path="$link_dir/$source_path"
+        fi
+    done
+
+    (
+        cd -P "$(dirname "$source_path")" >/dev/null 2>&1 || exit 1
+        printf '%s/%s\n' "$(pwd)" "$(basename "$source_path")"
+    )
+}
+
+if [[ -z "${TERMENV:-}" ]]; then
+    TERMENV="$(dirname "$(resolve_path "${BASH_SOURCE[0]}")")"
 fi
 
-# l TARGET LINK_NAME (ie. make a symlink at path LINK_NAME pointing to TARGET)
+SYMLINKS_FILE="${TERMENV}/symlinks.txt"
+DOT_CONFIG="${XDG_CONFIG_HOME:-${HOME}/.config}"
+
+target_path_for_root () {
+    local root="$1"
+    local relative_path="$2"
+
+    case "$root" in
+        home)
+            printf '%s/%s\n' "$HOME" "$relative_path"
+            ;;
+        xdg-config)
+            printf '%s/%s\n' "$DOT_CONFIG" "$relative_path"
+            ;;
+        *)
+            error "ERROR: Unknown target root '$root' in $SYMLINKS_FILE"
+            return 1
+            ;;
+    esac
+}
+
 link () {
-    TARGET="$1"
-    LINK_NAME="$2"
-    TARGET_ABS="$(realpath $TARGET || $TARGET)"
-    2>&1 printf "%s -> %s" "$LINK_NAME" "$TARGET"
-    # the -L handles broken symlinks
-    if [[ -e "$LINK_NAME" || -L "$LINK_NAME" ]]; then
-        if [[ -L "$LINK_NAME" ]]; then
-            if [[ "$TARGET_ABS" != "$(readlink $LINK_NAME)" ]]; then
-                error ". ERROR: $LINK_NAME is already a link that points to $(readlink ${LINK_NAME})."
+    local target="$1"
+    local link_name="$2"
+    local target_abs
+    local current_target
+
+    target_abs="$(resolve_path "$target")"
+    printf '%s -> %s' "$link_name" "$target"
+
+    if [[ -e "$link_name" || -L "$link_name" ]]; then
+        if [[ -L "$link_name" ]]; then
+            current_target="$(resolve_path "$link_name" 2>/dev/null || true)"
+            if [[ "$target_abs" != "$current_target" ]]; then
+                error ". ERROR: $link_name is already a link that points to $current_target."
             else
-                # link already exists as we want.
-                echo .
+                printf '.\n'
             fi
         else
-            error ". ERROR: $LINK_NAME already exists!"
+            error ". ERROR: $link_name already exists!"
         fi
     else
-        # LINK_NAME does not exist. Ensure parent directory does.
-        if ! mkdir -p "$(dirname ${LINK_NAME})" ; then
-            error ". ERROR: Cannot create $(dirname ${LINK_NAME})!"
+        if ! mkdir -p "$(dirname "$link_name")"; then
+            error ". ERROR: Cannot create $(dirname "$link_name")!"
         fi
-        echo "."
-        ln -s "$TARGET" "$LINK_NAME" || EXIT_CODE=1
+        printf '.\n'
+        ln -s "$target" "$link_name" || EXIT_CODE=1
     fi
 }
 
-DOT_CONFIG="${XDG_CONFIG_HOME:-${HOME}/.config}"
+if [[ ! -f "$SYMLINKS_FILE" ]]; then
+    error "ERROR: symlink manifest not found: $SYMLINKS_FILE"
+    exit 1
+fi
 
-link "${TERMENV}/home/profile" "${HOME}/.profile"
-link "${TERMENV}/flake.nix" "${DOT_CONFIG}/home-manager/flake.nix"
+while IFS='|' read -r root source target; do
+    if [[ -z "$root" || "$root" == \#* ]]; then
+        continue
+    fi
 
-exit $EXIT_CODE
+    if [[ -z "$source" || -z "$target" ]]; then
+        error "ERROR: Invalid symlink entry in $SYMLINKS_FILE: $root|$source|$target"
+        continue
+    fi
+
+    link "${TERMENV}/${source}" "$(target_path_for_root "$root" "$target")"
+done < "$SYMLINKS_FILE"
+
+exit "$EXIT_CODE"

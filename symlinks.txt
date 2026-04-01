@@ -1,0 +1,12 @@
+# root|source|target
+home|home/bash/bashrc|.bashrc
+home|home/profile|.profile
+home|home/inputrc|.inputrc
+home|home/tmux.conf|.tmux.conf
+home|home/latexmk/latexmkrc|.latexmkrc
+home|scripts/update-packages.sh|.local/bin/update-packages
+xdg-config|flake.nix|home-manager/flake.nix
+xdg-config|home/bash|terminalenv/bash
+xdg-config|home/nvim|terminalenv/nvim
+xdg-config|home/starship.toml|starship.toml
+xdg-config|home/git/template|git/template

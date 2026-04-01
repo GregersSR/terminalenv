@@ -43,11 +43,33 @@ if ! shopt -oq posix; then
   fi
 fi
 
-export TERMENV="${TERMENV:-$HOME/terminalenv}"
-HERE="${TERMENV}/home/bash"
+CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+if [ -d "${CONFIG_HOME}/terminalenv/bash" ]; then
+  export TERMENV="${TERMENV:-${CONFIG_HOME}/terminalenv}"
+  HERE="${TERMENV}/bash"
+else
+  SOURCE_PATH="${BASH_SOURCE[0]}"
+  while [ -L "$SOURCE_PATH" ]; do
+      SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" >/dev/null 2>&1 && pwd)"
+      SOURCE_PATH="$(readlink "$SOURCE_PATH")"
+      if [[ "$SOURCE_PATH" != /* ]]; then
+          SOURCE_PATH="$SOURCE_DIR/$SOURCE_PATH"
+      fi
+  done
+  HERE="$(cd -P "$(dirname "$SOURCE_PATH")" >/dev/null 2>&1 && pwd)"
+  export TERMENV="${TERMENV:-$(dirname "$(dirname "$HERE")")}"
+fi
+
+if [ -f "${HERE}/completions/git" ]; then
+  source "${HERE}/completions/git"
+else
+  echo "Warning: git completion not found at ${HERE}/completions/git" >&2
+fi
+export GIT_COMPLETION_CHECKOUT_NO_GUESS=1
+
 source "${HERE}/lib.sh"
 source "${HERE}/env.sh"
 source "${HERE}/aliases.sh"
 source "${HERE}/prompt.sh"
 source "${HERE}/path.sh"
-unset HERE
+unset CONFIG_HOME HERE SOURCE_DIR SOURCE_PATH

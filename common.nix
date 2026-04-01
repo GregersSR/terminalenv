@@ -1,6 +1,7 @@
 { config, pkgs, localpkgs, ... }:
 
 {
+  imports = [ ./modules/symlinked-home-files.nix ];
 
   nix = {
     package = pkgs.nix;
@@ -23,17 +24,18 @@
     pkgs.pixi
   ];
 
-  home.file = {
-    ".local/bin/update-packages" = {
-      source = ./scripts/update-packages.sh;
-      executable = true;
-    };
+  dotfiles.links = {
+    enable = true;
+    mode = "out-of-store";
+    repoRoot = "${config.home.homeDirectory}/terminalenv";
   };
 
   home.shell = {
     enableBashIntegration = true;
     enableZshIntegration = true;
   };
+
+  home.sessionVariables.TERMENV = "${config.xdg.configHome}/terminalenv";
 
 
   programs = {
@@ -69,16 +71,6 @@
       };
     };
 
-    bash = {
-      enable = true;
-      bashrcExtra = ''
-      [ -f ~/terminalenv/home/bash/bashrc ] && source ~/terminalenv/home/bash/bashrc 
-      '';
-      profileExtra = ''
-      [ -f ~/terminalenv/home/profile ] && source ~/terminalenv/home/profile
-      '';
-    };
-
     git = {
       enable = true;
       settings = {
@@ -88,6 +80,7 @@
         };
         pull.ff = "only";
         init.defaultBranch = "main";
+        init.templateDir = "${config.xdg.configHome}/git/template";
       };
     };
 
