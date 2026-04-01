@@ -43,6 +43,7 @@ if ! shopt -oq posix; then
   fi
 fi
 
+
 CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 if [ -d "${CONFIG_HOME}/terminalenv/bash" ]; then
   export TERMENV="${TERMENV:-${CONFIG_HOME}/terminalenv}"
@@ -60,11 +61,7 @@ else
   export TERMENV="${TERMENV:-$(dirname "$(dirname "$HERE")")}"
 fi
 
-if [ -f "${HERE}/completions/git" ]; then
-  source "${HERE}/completions/git"
-else
-  echo "Warning: git completion not found at ${HERE}/completions/git" >&2
-fi
+source /usr/share/bash-completion/completions/git
 export GIT_COMPLETION_CHECKOUT_NO_GUESS=1
 
 source "${HERE}/lib.sh"

@@ -113,12 +113,41 @@ assert_bash_works() {
   fi
 }
 
+assert_core_paths() {
+  [[ -L "$TEST_HOME/.bashrc" ]] || fail "Missing ~/.bashrc symlink"
+  [[ -L "$TEST_HOME/.profile" ]] || fail "Missing ~/.profile symlink"
+  [[ -L "$TEST_HOME/.local/bin/update-packages" ]] || fail "Missing update-packages symlink"
+  [[ -x "$TEST_HOME/.local/bin/update-packages" ]] || fail "update-packages is not executable"
+  [[ -L "$TEST_HOME/.config/terminalenv/bash" ]] || fail "Missing terminalenv bash symlink"
+  [[ -f "$TEST_HOME/.config/terminalenv/bash/lib.sh" ]] || fail "Missing bash support file"
+  [[ -f "$TEST_HOME/.config/terminalenv/bash/completions/git" ]] || fail "Missing git completion support file"
+  [[ -L "$TEST_HOME/.config/terminalenv/nvim" ]] || fail "Missing terminalenv nvim symlink"
+  [[ -f "$TEST_HOME/.config/terminalenv/nvim/settings.vim" ]] || fail "Missing nvim settings file"
+}
+
+assert_profile_works() {
+  if ! HOME="$TEST_HOME" \
+    USER=tester \
+    LOGNAME=tester \
+    XDG_CONFIG_HOME="$TEST_HOME/.config" \
+    XDG_CACHE_HOME="$TEST_HOME/.cache" \
+    XDG_DATA_HOME="$TEST_HOME/.local/share" \
+    XDG_STATE_HOME="$TEST_HOME/.local/state" \
+    TERM=xterm-256color \
+    bash -lc '[ "$TERMENV" = "$XDG_CONFIG_HOME/terminalenv" ]'; then
+    fail "Login shell profile check failed for $TEST_HOME"
+  fi
+}
+
 run_script_mode() {
   log "Testing native symlink deployment in Nix check sandbox"
   reset_home
   shell_env
   TERMENV="$EXPECTED_OUT_OF_STORE_ROOT" bash "$REPO_ROOT/mksymlinks.sh"
+  TERMENV="$EXPECTED_OUT_OF_STORE_ROOT" bash "$REPO_ROOT/mksymlinks.sh" >/dev/null
   assert_links repo
+  assert_core_paths
+  assert_profile_works
   assert_bash_works
 }
 
@@ -142,6 +171,7 @@ assert_generation_entries() {
 
     [[ -e "$home_files_path" || -L "$home_files_path" ]] || fail "Expected generated path missing: $home_files_path"
   done < <(manifest_entries)
+
 }
 
 run_home_manager_mode() {

@@ -23,56 +23,10 @@
         dell-xps-15 = ./dell-xps-15.nix;
         t14 = ./t14.nix;
       };
-      mkCheckActivation = mode: (home-manager.lib.homeManagerConfiguration {
-        inherit pkgs;
-        extraSpecialArgs = {
-          localpkgs = packages;
-        };
-        modules = [
-          modules.common
-          {
-            home.username = "tester";
-            home.homeDirectory = "/tmp/terminalenv-test-home";
-            home.stateVersion = "24.11";
-
-            dotfiles.links.mode = pkgs.lib.mkForce mode;
-            dotfiles.links.repoRoot = pkgs.lib.mkForce (builtins.toString ./.);
-          }
-        ];
-      }).activationPackage;
-      deploymentTestImage = pkgs.dockerTools.buildImage {
-        name = "terminalenv-deployment-tests";
-        tag = "latest";
-        copyToRoot = pkgs.buildEnv {
-          name = "terminalenv-deployment-test-root";
-          paths = with pkgs; [ bashInteractive coreutils git ];
-          pathsToLink = [ "/bin" ];
-        };
-        config.Cmd = [ "/bin/bash" ];
+      deploymentTests = import ./tests/deployments.nix {
+        inherit pkgs packages modules;
+        homeManager = home-manager;
       };
-      deploymentTest = pkgs.writeShellApplication {
-        name = "test-deployments";
-        runtimeInputs = with pkgs; [ bash coreutils git nix podman ];
-        text = ''
-          exec ${pkgs.bash}/bin/bash ${./tests/test-deployments.sh} "$@"
-        '';
-      };
-      deploymentCheck = pkgs.runCommandLocal "deployment-tests" {
-        nativeBuildInputs = [ pkgs.bash pkgs.coreutils ];
-        allowSubstitutes = false;
-        preferLocalBuild = true;
-      } ''
-        export HOME="$TMPDIR/home"
-        mkdir -p "$HOME"
-
-        export ACTIVATION_OUT_OF_STORE="${mkCheckActivation "out-of-store"}"
-        export ACTIVATION_STORE="${mkCheckActivation "store"}"
-        export EXPECTED_OUT_OF_STORE_ROOT="${./.}"
-        export REPO_ROOT="${./.}"
-
-        ${pkgs.bash}/bin/bash ${./tests/test-deployments-in-nix-check.sh}
-        touch "$out"
-      '';
     in {
       homeConfigurations."gsr" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
@@ -85,11 +39,8 @@
         # Optionally use extraSpecialArgs
         # to pass through arguments to home.nix
       };
-      apps.${system}.test-deployments = {
-        type = "app";
-        program = "${deploymentTest}/bin/test-deployments";
-      };
-      checks.${system}.deployment-tests = deploymentCheck;
+      apps.${system}.test-deployments = deploymentTests.test;
+      checks.${system}.deployment-tests = deploymentTests.check;
       inherit modules;
     };
 }
