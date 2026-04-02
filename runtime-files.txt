@@ -1,0 +1,7 @@
+home/bash/lib.sh
+home/bash/env.sh
+home/bash/aliases.sh
+home/bash/prompt.sh
+home/bash/path.sh
+home/bash/completions/git
+home/nvim/settings.vim

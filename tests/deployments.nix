@@ -7,15 +7,17 @@ let
     (homeManager.lib.homeManagerConfiguration {
       inherit pkgs;
       modules = [
+        modules.dotfiles
         modules.common
-        {
+        ({ ... }: {
           home.username = "tester";
           home.homeDirectory = "/tmp/terminalenv-test-home";
           home.stateVersion = "24.11";
 
           dotfiles.links.mode = pkgs.lib.mkForce mode;
+        } // pkgs.lib.optionalAttrs (mode == "out-of-store") {
           dotfiles.links.repoRoot = pkgs.lib.mkForce (builtins.toString repoRoot);
-        }
+        })
       ];
     }).activationPackage;
 

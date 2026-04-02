@@ -13,6 +13,7 @@ done
 TESTS_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" >/dev/null 2>&1 && pwd)"
 REPO_ROOT="${REPO_ROOT:-$(cd -P "$TESTS_DIR/.." >/dev/null 2>&1 && pwd)}"
 MANIFEST="$REPO_ROOT/symlinks.txt"
+RUNTIME_FILES_MANIFEST="$REPO_ROOT/runtime-files.txt"
 TEST_HOME="${TEST_HOME:-/tmp/terminalenv-test-home}"
 
 : "${ACTIVATION_OUT_OF_STORE:?ACTIVATION_OUT_OF_STORE must be set}"
@@ -68,6 +69,13 @@ shell_env() {
   export XDG_DATA_HOME="$TEST_HOME/.local/share"
   export XDG_STATE_HOME="$TEST_HOME/.local/state"
   export TERM=xterm-256color
+  unset TERMENV
+}
+
+seed_checkout() {
+  mkdir -p "$TEST_HOME/terminalenv"
+  cp -r "$REPO_ROOT/." "$TEST_HOME/terminalenv"
+  rm -rf "$TEST_HOME/terminalenv/result"
 }
 
 assert_links() {
@@ -75,22 +83,20 @@ assert_links() {
 
   while IFS='|' read -r root source target; do
     local path
-    local resolved
-    local expected
+    local link_target
 
+    [[ "$root" == "termenv" ]] && continue
     path="$(target_path "$root" "$target")"
     [[ -L "$path" ]] || fail "$path is not a symlink"
-    resolved="$(readlink -f "$path" 2>/dev/null || true)"
-    [[ -n "$resolved" ]] || fail "$path is dangling or unreadable"
-    expected="$EXPECTED_OUT_OF_STORE_ROOT/$source"
+    link_target="$(readlink "$path" 2>/dev/null || true)"
+    [[ -n "$link_target" ]] || fail "$path is unreadable"
 
     case "$expected_kind" in
-      repo)
-        [[ "$resolved" == "$expected" ]] || fail "$path resolved to $resolved, expected $expected"
+      runtime)
+        [[ "$link_target" == "$TEST_HOME/terminalenv/$source" ]] || fail "$path pointed to $link_target, expected $TEST_HOME/terminalenv/$source"
         ;;
       store)
-        [[ "$resolved" == /nix/store/* ]] || fail "$path resolved to $resolved, expected /nix/store/*"
-        [[ "$resolved" != "$expected" ]] || fail "$path unexpectedly resolved to source path $expected in store mode"
+        [[ "$link_target" == /nix/store/* ]] || fail "$path pointed to $link_target, expected /nix/store/*"
         ;;
       *)
         fail "Unknown expected link kind: $expected_kind"
@@ -113,22 +119,37 @@ assert_bash_works() {
   fi
 }
 
-assert_runtime_root() {
+assert_runtime_root_is_checkout() {
+  [[ -d "$TEST_HOME/terminalenv" ]] || fail "Missing ~/terminalenv checkout"
+  [[ ! -L "$TEST_HOME/terminalenv" ]] || fail "~/terminalenv should not be a symlink"
+}
+
+assert_runtime_root_is_store_materialized() {
+  [[ -d "$TEST_HOME/terminalenv" ]] || fail "Missing ~/terminalenv runtime root"
+  [[ ! -L "$TEST_HOME/terminalenv" ]] || fail "~/terminalenv should not be a symlink"
+}
+
+assert_runtime_files() {
   local expected_kind="$1"
+  local relative_path
+  local path
   local resolved
 
-  [[ -e "$TEST_HOME/terminalenv" || -L "$TEST_HOME/terminalenv" ]] || fail "Missing ~/terminalenv runtime root"
-  resolved="$(readlink -f "$TEST_HOME/terminalenv" 2>/dev/null || true)"
-  [[ -n "$resolved" ]] || fail "~/terminalenv is dangling"
+  while IFS= read -r relative_path; do
+    [[ -n "$relative_path" && "$relative_path" != \#* ]] || continue
+    path="$TEST_HOME/terminalenv/$relative_path"
+    [[ -e "$path" || -L "$path" ]] || fail "Missing TERMENV entry $path"
 
-  case "$expected_kind" in
-    repo)
-      [[ "$resolved" == "$EXPECTED_OUT_OF_STORE_ROOT" ]] || fail "~/terminalenv resolved to $resolved, expected $EXPECTED_OUT_OF_STORE_ROOT"
-      ;;
-    store)
-      [[ "$resolved" == /nix/store/* ]] || fail "~/terminalenv resolved to $resolved, expected /nix/store/*"
-      ;;
-  esac
+    case "$expected_kind" in
+      runtime)
+        [[ -e "$path" ]] || fail "Missing checkout runtime file $path"
+        ;;
+      store)
+        resolved="$(readlink -f "$path")"
+        [[ "$resolved" == /nix/store/* ]] || fail "$path resolved to $resolved, expected /nix/store/*"
+        ;;
+    esac
+  done < "$RUNTIME_FILES_MANIFEST"
 }
 
 assert_core_paths() {
@@ -160,10 +181,12 @@ run_script_mode() {
   log "Testing native symlink deployment in Nix check sandbox"
   reset_home
   shell_env
-  TERMENV="$EXPECTED_OUT_OF_STORE_ROOT" bash "$REPO_ROOT/mksymlinks.sh"
-  TERMENV="$EXPECTED_OUT_OF_STORE_ROOT" bash "$REPO_ROOT/mksymlinks.sh" >/dev/null
-  assert_links repo
-  assert_runtime_root repo
+  seed_checkout
+  bash "$TEST_HOME/terminalenv/mksymlinks.sh"
+  bash "$TEST_HOME/terminalenv/mksymlinks.sh" >/dev/null
+  assert_links runtime
+  assert_runtime_root_is_checkout
+  assert_runtime_files runtime
   assert_core_paths
   assert_profile_works
   assert_bash_works
@@ -171,6 +194,7 @@ run_script_mode() {
 
 assert_generation_entries() {
   local generation="$1"
+  local mode="$2"
 
   while IFS='|' read -r root source target; do
     local home_files_path
@@ -190,8 +214,6 @@ assert_generation_entries() {
     [[ -e "$home_files_path" || -L "$home_files_path" ]] || fail "Expected generated path missing: $home_files_path"
   done < <(manifest_entries)
 
-  [[ -e "$generation/home-files/terminalenv" || -L "$generation/home-files/terminalenv" ]] || fail "Expected runtime root missing from generation"
-
 }
 
 run_home_manager_mode() {
@@ -199,7 +221,7 @@ run_home_manager_mode() {
   local generation="$2"
 
   log "Testing Home Manager deployment ($mode) generation output"
-  assert_generation_entries "$generation"
+  assert_generation_entries "$generation" "$mode"
 }
 
 run_script_mode

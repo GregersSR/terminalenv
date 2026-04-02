@@ -19,6 +19,7 @@
         localpkgs = packages;
       };
       modules = {
+        dotfiles = ./dotfiles.nix;
         common = ./common.nix;
         dell-xps-15 = ./dell-xps-15.nix;
         t14 = ./t14.nix;
@@ -34,7 +35,7 @@
 
         # Specify your home configuration modules here, for example,
         # the path to your home.nix.
-        modules = [ modules.common modules.t14 ];
+        modules = [ modules.dotfiles modules.common modules.t14 ];
 
         # Optionally use extraSpecialArgs
         # to pass through arguments to home.nix

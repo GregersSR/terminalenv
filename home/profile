@@ -1,5 +1,9 @@
-if [ -d "$HOME/terminalenv/home" ]; then
-    export TERMENV="${TERMENV:-$HOME/terminalenv}"
+if [ -f "$HOME/.profile.local" ]; then
+    . "$HOME/.profile.local"
+fi
+
+if [ -z "$TERMENV" ]; then
+    export TERMENV="$HOME/terminalenv"
 fi
 
 # if running bash

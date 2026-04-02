@@ -1,8 +1,6 @@
 { config, pkgs, ... }:
 
 {
-  imports = [ ./modules/symlinked-home-files.nix ];
-
   nix = {
     package = pkgs.nix;
     settings.experimental-features = [ "nix-command" "flakes" ];
@@ -15,27 +13,21 @@
   home.extraOutputsToInstall = [ "man" ];
   programs.man.enable = false;
 
-  home.packages = [
-    pkgs.cargo
-    pkgs.gef
-    pkgs.git-annex
-    pkgs.jqp
-    pkgs.git-filter-repo
-    pkgs.pixi
+  home.packages = with pkgs; [
+    cargo
+    gef
+    git-annex
+    jqp
+    git-filter-repo
+    pixi
+    fd
+    ripgrep
   ];
-
-  dotfiles.links = {
-    enable = true;
-    mode = "out-of-store";
-    repoRoot = "${config.home.homeDirectory}/terminalenv";
-  };
 
   home.shell = {
     enableBashIntegration = true;
     enableZshIntegration = true;
   };
-
-  home.sessionVariables.TERMENV = "${config.home.homeDirectory}/terminalenv";
 
 
   programs = {
