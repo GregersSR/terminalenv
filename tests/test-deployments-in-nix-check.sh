@@ -108,9 +108,27 @@ assert_bash_works() {
     XDG_DATA_HOME="$TEST_HOME/.local/share" \
     XDG_STATE_HOME="$TEST_HOME/.local/state" \
     TERM=xterm-256color \
-    bash -i -c 'complete -p ga >/dev/null && [ "$TERMENV" = "$XDG_CONFIG_HOME/terminalenv" ]'; then
+    env -u TERMENV bash -i -c 'complete -p ga >/dev/null && [ "$TERMENV" = "$HOME/terminalenv" ]'; then
     fail "Interactive bash check failed for $TEST_HOME"
   fi
+}
+
+assert_runtime_root() {
+  local expected_kind="$1"
+  local resolved
+
+  [[ -e "$TEST_HOME/terminalenv" || -L "$TEST_HOME/terminalenv" ]] || fail "Missing ~/terminalenv runtime root"
+  resolved="$(readlink -f "$TEST_HOME/terminalenv" 2>/dev/null || true)"
+  [[ -n "$resolved" ]] || fail "~/terminalenv is dangling"
+
+  case "$expected_kind" in
+    repo)
+      [[ "$resolved" == "$EXPECTED_OUT_OF_STORE_ROOT" ]] || fail "~/terminalenv resolved to $resolved, expected $EXPECTED_OUT_OF_STORE_ROOT"
+      ;;
+    store)
+      [[ "$resolved" == /nix/store/* ]] || fail "~/terminalenv resolved to $resolved, expected /nix/store/*"
+      ;;
+  esac
 }
 
 assert_core_paths() {
@@ -118,11 +136,10 @@ assert_core_paths() {
   [[ -L "$TEST_HOME/.profile" ]] || fail "Missing ~/.profile symlink"
   [[ -L "$TEST_HOME/.local/bin/update-packages" ]] || fail "Missing update-packages symlink"
   [[ -x "$TEST_HOME/.local/bin/update-packages" ]] || fail "update-packages is not executable"
-  [[ -L "$TEST_HOME/.config/terminalenv/bash" ]] || fail "Missing terminalenv bash symlink"
-  [[ -f "$TEST_HOME/.config/terminalenv/bash/lib.sh" ]] || fail "Missing bash support file"
-  [[ -f "$TEST_HOME/.config/terminalenv/bash/completions/git" ]] || fail "Missing vendored git completion script"
-  [[ -L "$TEST_HOME/.config/terminalenv/nvim" ]] || fail "Missing terminalenv nvim symlink"
-  [[ -f "$TEST_HOME/.config/terminalenv/nvim/settings.vim" ]] || fail "Missing nvim settings file"
+  [[ -e "$TEST_HOME/terminalenv" ]] || fail "Missing ~/terminalenv runtime root"
+  [[ -f "$TEST_HOME/terminalenv/home/bash/lib.sh" ]] || fail "Missing bash support file"
+  [[ -f "$TEST_HOME/terminalenv/home/bash/completions/git" ]] || fail "Missing vendored git completion script"
+  [[ -f "$TEST_HOME/terminalenv/home/nvim/settings.vim" ]] || fail "Missing nvim settings file"
 }
 
 assert_profile_works() {
@@ -134,7 +151,7 @@ assert_profile_works() {
     XDG_DATA_HOME="$TEST_HOME/.local/share" \
     XDG_STATE_HOME="$TEST_HOME/.local/state" \
     TERM=xterm-256color \
-    bash -lc '[ "$TERMENV" = "$XDG_CONFIG_HOME/terminalenv" ]'; then
+    env -u TERMENV bash -lc '[ "$TERMENV" = "$HOME/terminalenv" ]'; then
     fail "Login shell profile check failed for $TEST_HOME"
   fi
 }
@@ -146,6 +163,7 @@ run_script_mode() {
   TERMENV="$EXPECTED_OUT_OF_STORE_ROOT" bash "$REPO_ROOT/mksymlinks.sh"
   TERMENV="$EXPECTED_OUT_OF_STORE_ROOT" bash "$REPO_ROOT/mksymlinks.sh" >/dev/null
   assert_links repo
+  assert_runtime_root repo
   assert_core_paths
   assert_profile_works
   assert_bash_works
@@ -171,6 +189,8 @@ assert_generation_entries() {
 
     [[ -e "$home_files_path" || -L "$home_files_path" ]] || fail "Expected generated path missing: $home_files_path"
   done < <(manifest_entries)
+
+  [[ -e "$generation/home-files/terminalenv" || -L "$generation/home-files/terminalenv" ]] || fail "Expected runtime root missing from generation"
 
 }
 

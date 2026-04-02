@@ -81,10 +81,33 @@ link () {
     fi
 }
 
+ensure_runtime_root () {
+    local runtime_root="$HOME/terminalenv"
+    local target_abs
+    local current_target
+
+    target_abs="$(resolve_path "$TERMENV")"
+    printf '%s -> %s' "$runtime_root" "$TERMENV"
+
+    if [[ -e "$runtime_root" || -L "$runtime_root" ]]; then
+        current_target="$(resolve_path "$runtime_root" 2>/dev/null || true)"
+        if [[ "$current_target" == "$target_abs" ]]; then
+            printf '.\n'
+        else
+            error ". ERROR: $runtime_root already exists and resolves to $current_target."
+        fi
+    else
+        printf '.\n'
+        ln -s "$TERMENV" "$runtime_root" || EXIT_CODE=1
+    fi
+}
+
 if [[ ! -f "$SYMLINKS_FILE" ]]; then
     error "ERROR: symlink manifest not found: $SYMLINKS_FILE"
     exit 1
 fi
+
+ensure_runtime_root
 
 while IFS='|' read -r root source target; do
     if [[ -z "$root" || "$root" == \#* ]]; then

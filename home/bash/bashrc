@@ -44,10 +44,10 @@ if ! shopt -oq posix; then
 fi
 
 
-CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
-if [ -d "${CONFIG_HOME}/terminalenv/bash" ]; then
-  export TERMENV="${TERMENV:-${CONFIG_HOME}/terminalenv}"
-  HERE="${TERMENV}/bash"
+RUNTIME_ROOT="$HOME/terminalenv"
+if [ -d "${RUNTIME_ROOT}/home/bash" ]; then
+  export TERMENV="${TERMENV:-${RUNTIME_ROOT}}"
+  HERE="${TERMENV}/home/bash"
 else
   SOURCE_PATH="${BASH_SOURCE[0]}"
   while [ -L "$SOURCE_PATH" ]; do
@@ -75,4 +75,4 @@ source "${HERE}/env.sh"
 source "${HERE}/aliases.sh"
 source "${HERE}/prompt.sh"
 source "${HERE}/path.sh"
-unset CONFIG_HOME HERE SOURCE_DIR SOURCE_PATH
+unset HERE RUNTIME_ROOT SOURCE_DIR SOURCE_PATH

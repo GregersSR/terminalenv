@@ -35,7 +35,7 @@
     enableZshIntegration = true;
   };
 
-  home.sessionVariables.TERMENV = "${config.xdg.configHome}/terminalenv";
+  home.sessionVariables.TERMENV = "${config.home.homeDirectory}/terminalenv";
 
 
   programs = {
@@ -45,7 +45,7 @@
       defaultEditor = true;
       extraConfig = ''
       source $TERMENV/home/nvim/settings.vim
-      '';	
+      ''; 	
       plugins = with pkgs.vimPlugins; [
         nvim-treesitter.withAllGrammars
         plenary-nvim

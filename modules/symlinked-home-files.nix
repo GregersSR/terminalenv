@@ -4,6 +4,7 @@ let
   cfg = config.dotfiles.links;
   manifestFile = ../symlinks.txt;
   repoSourceRoot = ../.;
+  runtimeRootPath = "${config.home.homeDirectory}/terminalenv";
 
   rawEntries = lib.filter (line:
     line != "" && !lib.hasPrefix "#" line
@@ -28,6 +29,18 @@ let
       config.lib.file.mkOutOfStoreSymlink "${cfg.repoRoot}/${entry.source}"
     else
       repoSourceRoot + "/${entry.source}";
+
+  runtimeRootSource =
+    if cfg.mode == "out-of-store" then
+      config.lib.file.mkOutOfStoreSymlink cfg.repoRoot
+    else
+      repoSourceRoot;
+
+  runtimeRootEntry = lib.optionalAttrs (!(cfg.mode == "out-of-store" && cfg.repoRoot == runtimeRootPath)) {
+    "terminalenv" = {
+      source = runtimeRootSource;
+    };
+  };
 
   entryValue = entry: {
     source = sourceFor entry;
@@ -77,7 +90,7 @@ in
       }
     ];
 
-    home.file = toAttrs "home";
+    home.file = (toAttrs "home") // runtimeRootEntry;
     xdg.configFile = toAttrs "xdg-config";
   };
 }
