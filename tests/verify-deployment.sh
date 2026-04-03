@@ -53,6 +53,7 @@ prepare_flake_snapshot() {
 seed_checkout() {
   mkdir -p "$HOME/terminalenv"
   cp -a /repo/. "$HOME/terminalenv"
+  chmod -R u+w "$HOME/terminalenv" 2>/dev/null || true
   rm -rf "$HOME/terminalenv/result"
 }
 
@@ -260,6 +261,7 @@ build_external_consumer_activation() {
         modules = [
           dotfiles.modules.dotfiles
           dotfiles.modules.common
+          dotfiles.modules.nixpkgs-registry
           ({ lib, ... }: {
             home.username = "tester";
             home.homeDirectory = "${HOME}";
@@ -267,6 +269,9 @@ build_external_consumer_activation() {
             ${overrides}
           })
         ];
+        extraSpecialArgs = {
+          nixpkgsFlake = nixpkgs;
+        };
       };
     };
 }

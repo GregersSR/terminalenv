@@ -17,15 +17,17 @@
       packages = import ./packages pkgs;
       extraSpecialArgs = {
         localpkgs = packages;
+        nixpkgsFlake = nixpkgs;
       };
       modules = {
         dotfiles = ./dotfiles.nix;
         common = ./common.nix;
-        dell-xps-15 = ./dell-xps-15.nix;
+        nixpkgs-registry = ./nixpkgs-registry.nix;
         t14 = ./t14.nix;
       };
       deploymentTests = import ./tests/deployments.nix {
         inherit pkgs modules;
+        nixpkgsFlake = nixpkgs;
         homeManager = home-manager;
       };
     in {
@@ -35,7 +37,7 @@
 
         # Specify your home configuration modules here, for example,
         # the path to your home.nix.
-        modules = [ modules.dotfiles modules.common modules.t14 ];
+        modules = [ modules.dotfiles modules.common modules.nixpkgs-registry modules.t14 ];
 
         # Optionally use extraSpecialArgs
         # to pass through arguments to home.nix

@@ -74,7 +74,8 @@ shell_env() {
 
 seed_checkout() {
   mkdir -p "$TEST_HOME/terminalenv"
-  cp -r "$REPO_ROOT/." "$TEST_HOME/terminalenv"
+  cp -a "$REPO_ROOT/." "$TEST_HOME/terminalenv"
+  chmod -R u+w "$TEST_HOME/terminalenv" 2>/dev/null || true
   rm -rf "$TEST_HOME/terminalenv/result"
 }
 

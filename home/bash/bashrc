@@ -66,4 +66,9 @@ source "${HERE}/env.sh"
 source "${HERE}/aliases.sh"
 source "${HERE}/prompt.sh"
 source "${HERE}/path.sh"
+
+if command -v direnv >/dev/null 2>&1; then
+  eval "$(direnv hook bash)"
+fi
+
 unset HERE

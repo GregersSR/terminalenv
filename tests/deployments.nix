@@ -1,4 +1,4 @@
-{ pkgs, homeManager, modules }:
+{ pkgs, homeManager, modules, nixpkgsFlake }:
 
 let
   repoRoot = ../.;
@@ -6,9 +6,13 @@ let
   mkCheckActivation = mode:
     (homeManager.lib.homeManagerConfiguration {
       inherit pkgs;
+      extraSpecialArgs = {
+        inherit nixpkgsFlake;
+      };
       modules = [
         modules.dotfiles
         modules.common
+        modules.nixpkgs-registry
         ({ ... }: {
           home.username = "tester";
           home.homeDirectory = "/tmp/terminalenv-test-home";

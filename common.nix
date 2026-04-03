@@ -20,6 +20,7 @@
     jqp
     git-filter-repo
     pixi
+    pandoc
     fd
     ripgrep
   ];
@@ -70,6 +71,10 @@
           autocrlf = "input";
           editor = "nvim";
         };
+        difftool = {
+          prompt = false;
+          difftastic.cmd = ''${pkgs.difftastic}/bin/difft "$LOCAL" "$REMOTE"'';
+        };
         pull.ff = "only";
         init.defaultBranch = "main";
         init.templateDir = "${config.xdg.configHome}/git/template";
@@ -90,7 +95,6 @@
 
     difftastic = {
       enable = true;
-      git.enable = true;
     };
   };
 }

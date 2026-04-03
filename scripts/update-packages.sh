@@ -1,11 +1,79 @@
 #!/usr/bin/env bash
 
-function checkAndPrint {
-	local cmd="$1"
-	command -v "$cmd" >/dev/null && printf "\n\n====== Upgrading: ${cmd} ======\n\n"
+set -euo pipefail
+
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+while [ -L "$SCRIPT_PATH" ]; do
+  SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" >/dev/null 2>&1 && pwd)"
+  SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+  if [[ "$SCRIPT_PATH" != /* ]]; then
+    SCRIPT_PATH="$SCRIPT_DIR/$SCRIPT_PATH"
+  fi
+done
+
+SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" >/dev/null 2>&1 && pwd)"
+REPO_ROOT="$(cd -P "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd)"
+SKIP_SYSTEM_UPDATES="${UPDATE_PACKAGES_SKIP_SYSTEM:-0}"
+NIX_CMD="${NIX_CMD:-nix}"
+GIT_CMD="${GIT_CMD:-git}"
+
+print_section() {
+  printf '\n\n====== %s ======\n\n' "$1"
 }
 
-checkAndPrint apt-get && sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get autoremove -y
-checkAndPrint snap && sudo snap refresh
-checkAndPrint fwupdmgr && sudo fwupdmgr update
-checkAndPrint flatpak && flatpak update
+has_cmd() {
+  local cmd="$1"
+
+  if [[ "$cmd" == */* ]]; then
+    [[ -x "$cmd" ]]
+  else
+    command -v "$cmd" >/dev/null 2>&1
+  fi
+}
+
+run_if_available() {
+  local label="$1"
+  shift
+
+  if has_cmd "$1"; then
+    print_section "$label"
+    "$@"
+  fi
+}
+
+update_flake() {
+  if [[ ! -f "$REPO_ROOT/flake.nix" || ! -d "$REPO_ROOT/.git" ]]; then
+    return
+  fi
+
+  if ! has_cmd "$NIX_CMD" || ! has_cmd "$GIT_CMD"; then
+    return
+  fi
+
+  if [[ -n "$($GIT_CMD -C "$REPO_ROOT" status --porcelain -- flake.nix flake.lock)" ]]; then
+    printf 'Refusing to update flake because flake.nix or flake.lock has local changes.\n' >&2
+    exit 1
+  fi
+
+  print_section "flake"
+  "$NIX_CMD" flake update --flake "$REPO_ROOT"
+
+  if $GIT_CMD -C "$REPO_ROOT" diff --quiet -- flake.lock; then
+    printf 'flake.lock unchanged\n'
+    return
+  fi
+
+  "$GIT_CMD" -C "$REPO_ROOT" add flake.lock
+  "$GIT_CMD" -C "$REPO_ROOT" commit -m "Update flake lock"
+}
+
+if [[ "$SKIP_SYSTEM_UPDATES" != "1" ]]; then
+  run_if_available apt-get apt-get sudo apt-get update
+  run_if_available apt-get apt-get sudo apt-get upgrade -y
+  run_if_available apt-get apt-get sudo apt-get autoremove -y
+  run_if_available snap snap sudo snap refresh
+  run_if_available fwupdmgr fwupdmgr sudo fwupdmgr update
+  run_if_available flatpak flatpak flatpak update
+fi
+
+update_flake

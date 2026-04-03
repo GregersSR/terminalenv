@@ -15,9 +15,13 @@ let
 in
 (flake.inputs.home-manager.lib.homeManagerConfiguration {
   inherit pkgs;
+  extraSpecialArgs = {
+    nixpkgsFlake = flake.inputs.nixpkgs;
+  };
   modules = [
     (moduleRoot + "/dotfiles.nix")
     (moduleRoot + "/common.nix")
+    (moduleRoot + "/nixpkgs-registry.nix")
     ({ lib, ... }: {
       home.username = "tester";
       home.homeDirectory = homeDirectory;

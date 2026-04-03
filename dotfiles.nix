@@ -1,13 +1,16 @@
 { config, lib, ... }:
 
 let
-  repoSourceRoot = builtins.path {
-    path = ./.;
-    name = "dotfiles-runtime-source";
-  };
   runtimeFiles = lib.filter (line:
     line != "" && !lib.hasPrefix "#" line
   ) (lib.splitString "\n" (builtins.readFile ./runtime-files.txt));
+
+  runtimeFileSet = lib.fileset.unions (map (path: ./. + "/${path}") runtimeFiles);
+
+  repoSourceRoot = lib.fileset.toSource {
+    root = ./.;
+    fileset = runtimeFileSet;
+  };
 
   runtimeLinkScript = lib.concatMapStrings (path: ''
     mkdir -p "$HOME/terminalenv/$(dirname "${path}")"
