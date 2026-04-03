@@ -1,0 +1,2 @@
+~/terminalenv
+~/projects/repos
