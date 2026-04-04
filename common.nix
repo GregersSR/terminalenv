@@ -1,7 +1,6 @@
-{ config, pkgs, localpkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 {
-
   nix = {
     package = pkgs.nix;
     settings.experimental-features = [ "nix-command" "flakes" ];
@@ -14,21 +13,17 @@
   home.extraOutputsToInstall = [ "man" ];
   programs.man.enable = false;
 
-  home.packages = [
-    pkgs.cargo
-    pkgs.gef
-    pkgs.git-annex
-    pkgs.jqp
-    pkgs.git-filter-repo
-    pkgs.pixi
+  home.packages = with pkgs; [
+    cargo
+    gef
+    git-annex
+    jqp
+    git-filter-repo
+    pixi
+    pandoc
+    fd
+    ripgrep
   ];
-
-  home.file = {
-    ".local/bin/update-packages" = {
-      source = ./scripts/update-packages.sh;
-      executable = true;
-    };
-  };
 
   home.shell = {
     enableBashIntegration = true;
@@ -41,9 +36,6 @@
       enable = true;
       vimAlias = true;
       defaultEditor = true;
-      extraConfig = ''
-      source $TERMENV/home/nvim/settings.vim
-      '';	
       plugins = with pkgs.vimPlugins; [
         nvim-treesitter.withAllGrammars
         plenary-nvim
@@ -69,16 +61,6 @@
       };
     };
 
-    bash = {
-      enable = true;
-      bashrcExtra = ''
-      [ -f ~/terminalenv/home/bash/bashrc ] && source ~/terminalenv/home/bash/bashrc 
-      '';
-      profileExtra = ''
-      [ -f ~/terminalenv/home/profile ] && source ~/terminalenv/home/profile
-      '';
-    };
-
     git = {
       enable = true;
       settings = {
@@ -86,15 +68,21 @@
           autocrlf = "input";
           editor = "nvim";
         };
+        difftool = {
+          prompt = false;
+          difftastic.cmd = ''${pkgs.difftastic}/bin/difft "$LOCAL" "$REMOTE"'';
+        };
         pull.ff = "only";
         init.defaultBranch = "main";
+        init.templateDir = "${config.xdg.configHome}/git/template";
       };
     };
 
     ssh = {
       enable = true;
-      hashKnownHosts = false;
+      enableDefaultConfig = false;
       includes = [ "config.d/*" ];
+      matchBlocks."*".hashKnownHosts = false;
     };
 
     direnv = {
@@ -104,7 +92,11 @@
 
     difftastic = {
       enable = true;
-      git.enable = true;
     };
+  };
+
+  xdg.configFile."nvim/init.lua".enable = lib.mkForce false;
+  xdg.configFile."nvim/hm-generated.lua" = lib.mkIf config.programs.neovim.enable {
+    text = config.programs.neovim.initLua;
   };
 }

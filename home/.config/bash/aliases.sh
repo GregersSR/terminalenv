@@ -53,6 +53,38 @@ alias gswc='git switch --create'
 alias gswd='git switch $(git_develop_branch)'
 alias gswm='git switch $(git_main_branch)'
 
+if declare -F __git_complete >/dev/null 2>&1; then
+  __git_complete ga _git_add
+  __git_complete gaa _git_add
+  __git_complete gc _git_commit
+  __git_complete 'gc!' _git_commit
+  __git_complete gcB _git_checkout
+  __git_complete gca _git_commit
+  __git_complete gcd _git_checkout
+  __git_complete gcm _git_checkout
+  __git_complete gd _git_diff
+  __git_complete gds _git_diff
+  __git_complete gf _git_fetch
+  __git_complete gl _git_pull
+  __git_complete glg _git_log
+  __git_complete glgg _git_log
+  __git_complete glgga _git_log
+  __git_complete glog _git_log
+  __git_complete gm _git_merge
+  __git_complete gp _git_push
+  __git_complete gpf _git_push
+  __git_complete gpsup _git_push
+  __git_complete gst _git_status
+  __git_complete gsta _git_stash
+  __git_complete gstd _git_stash
+  __git_complete gstl _git_stash
+  __git_complete gstp _git_stash
+  __git_complete gsw _git_switch
+  __git_complete gswc _git_switch
+  __git_complete gswd _git_switch
+  __git_complete gswm _git_switch
+fi
+
 # ls
 if cmd_exists eza; then
 	alias ls='eza '

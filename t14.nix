@@ -10,9 +10,9 @@
     ];
   };
 
-  programs.git = {
-    userName = "Gregers Rørdam";
-    userEmail = "gregers@rordam.dk";
+  programs.git.settings.user = {
+    name = "Gregers Rørdam";
+    email = "gregers@rordam.dk";
   };
 
   programs.gh.enable = true;

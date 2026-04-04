@@ -43,11 +43,30 @@ if ! shopt -oq posix; then
   fi
 fi
 
-export TERMENV="${TERMENV:-$HOME/terminalenv}"
-HERE="${TERMENV}/home/bash"
-source "${HERE}/lib.sh"
-source "${HERE}/env.sh"
-source "${HERE}/aliases.sh"
-source "${HERE}/prompt.sh"
-source "${HERE}/path.sh"
-unset HERE
+BASH_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}/bash"
+
+if [ ! -f "${BASH_CONFIG_HOME}/lib.sh" ]; then
+  echo "Error: expected bash support files under '${BASH_CONFIG_HOME}'." >&2
+  return 1
+fi
+
+if [ -f "${BASH_CONFIG_HOME}/completions/git" ]; then
+  source "${BASH_CONFIG_HOME}/completions/git"
+elif [ -f /usr/share/bash-completion/completions/git ]; then
+  source /usr/share/bash-completion/completions/git
+else
+  echo "Warning: git completion not found" >&2
+fi
+export GIT_COMPLETION_CHECKOUT_NO_GUESS=1
+
+source "${BASH_CONFIG_HOME}/lib.sh"
+source "${BASH_CONFIG_HOME}/env.sh"
+source "${BASH_CONFIG_HOME}/aliases.sh"
+source "${BASH_CONFIG_HOME}/prompt.sh"
+source "${BASH_CONFIG_HOME}/path.sh"
+
+if command -v direnv >/dev/null 2>&1; then
+  eval "$(direnv hook bash)"
+fi
+
+unset BASH_CONFIG_HOME

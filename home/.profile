@@ -1,3 +1,7 @@
+if [ -f "$HOME/.profile.local" ]; then
+    . "$HOME/.profile.local"
+fi
+
 # if running bash
 if [ -n "$BASH_VERSION" ]; then
     # include .bashrc if it exists
