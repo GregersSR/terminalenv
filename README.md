@@ -1,24 +1,16 @@
 # Dotfiles
 
-Hybrid dotfiles repo:
+Dotfiles repo with one canonical `home/` tree:
 
-- native files in `home/` are the source of truth
-- `mksymlinks.sh` supports non-Nix systems
+- native deployment uses `stow`
 - Home Manager supports `out-of-store` and `store` deployments
 
 ## Layout
 
-- `symlinks.txt`: explicit user-facing links (`home` and `xdg-config` roots)
-- `runtime-files.txt`: repo files that must exist under `$TERMENV`
-- `modules/symlinked-home-files.nix`: shared manifest engine for `symlinks.txt`
-- `dotfiles.nix`: dotfiles policy module
-- `common.nix`: general HM config, separate from dotfiles linking
-
-## TERMENV
-
-- `~/.profile` sources optional `~/.profile.local` first
-- if `TERMENV` is still unset, it defaults to `$HOME/terminalenv`
-- Bash and Neovim expect runtime files under `$TERMENV`, e.g. `$TERMENV/home/bash/...`
+- `home/`: files laid out exactly as they should appear under `$HOME`
+- `mksymlinks.sh`: native Stow wrapper
+- `dotfiles.nix`: Home Manager deployment policy
+- `common.nix`: general Home Manager config
 
 ## Deployment Modes
 
@@ -29,14 +21,13 @@ Native / non-Nix:
 
 Home Manager `out-of-store`:
 
-- symlink entrypoints back to the checkout
+- restow `home/` from the checkout during activation
 - requires a local checkout at `~/terminalenv` by default
 - if no checkout exists, activation fails with a clear error
 
 Home Manager `store`:
 
-- materialize entrypoints from the flake source
-- create only the files listed in `runtime-files.txt` under `~/terminalenv`
+- materialize files from `home/` into the Nix store
 - works for flake-only consumers with no local checkout
 
 ## External Consumers
@@ -48,9 +39,8 @@ Recommended split:
 
 `store` mode works without a checkout.
 
-`out-of-store` mode needs a checkout unless you explicitly override both:
+`out-of-store` mode needs a checkout unless you override:
 
-- `TERMENV`
 - `dotfiles.links.repoRoot`
 
 ## Tests

@@ -12,13 +12,11 @@ while [ -L "$SCRIPT_PATH" ]; do
 done
 TESTS_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" >/dev/null 2>&1 && pwd)"
 REPO_ROOT="${REPO_ROOT:-$(cd -P "$TESTS_DIR/.." >/dev/null 2>&1 && pwd)}"
-MANIFEST="$REPO_ROOT/symlinks.txt"
-RUNTIME_FILES_MANIFEST="$REPO_ROOT/runtime-files.txt"
+REPO_HOME="$REPO_ROOT/home"
 TEST_HOME="${TEST_HOME:-/tmp/terminalenv-test-home}"
 
 : "${ACTIVATION_OUT_OF_STORE:?ACTIVATION_OUT_OF_STORE must be set}"
 : "${ACTIVATION_STORE:?ACTIVATION_STORE must be set}"
-: "${EXPECTED_OUT_OF_STORE_ROOT:?EXPECTED_OUT_OF_STORE_ROOT must be set}"
 
 fail() {
   printf 'FAIL: %s\n' "$*" >&2
@@ -29,30 +27,15 @@ log() {
   printf '==> %s\n' "$*"
 }
 
-manifest_entries() {
-  while IFS='|' read -r root source target; do
-    if [[ -z "$root" || "$root" == \#* ]]; then
-      continue
-    fi
-    printf '%s|%s|%s\n' "$root" "$source" "$target"
-  done < "$MANIFEST"
+home_tree_entries() {
+  (
+    cd "$REPO_HOME"
+    find . -type f -printf '%P\n' | sort
+  )
 }
 
-target_path() {
-  local root="$1"
-  local target="$2"
-
-  case "$root" in
-    home)
-      printf '%s/%s\n' "$TEST_HOME" "$target"
-      ;;
-    xdg-config)
-      printf '%s/.config/%s\n' "$TEST_HOME" "$target"
-      ;;
-    *)
-      fail "Unknown manifest root: $root"
-      ;;
-  esac
+installed_path() {
+  printf '%s/%s\n' "$TEST_HOME" "$1"
 }
 
 reset_home() {
@@ -69,7 +52,6 @@ shell_env() {
   export XDG_DATA_HOME="$TEST_HOME/.local/share"
   export XDG_STATE_HOME="$TEST_HOME/.local/state"
   export TERM=xterm-256color
-  unset TERMENV
 }
 
 seed_checkout() {
@@ -82,28 +64,27 @@ seed_checkout() {
 assert_links() {
   local expected_kind="$1"
 
-  while IFS='|' read -r root source target; do
+  while IFS= read -r relative_path; do
     local path
-    local link_target
+    local resolved
 
-    [[ "$root" == "termenv" ]] && continue
-    path="$(target_path "$root" "$target")"
+    path="$(installed_path "$relative_path")"
     [[ -L "$path" ]] || fail "$path is not a symlink"
-    link_target="$(readlink "$path" 2>/dev/null || true)"
-    [[ -n "$link_target" ]] || fail "$path is unreadable"
+    resolved="$(readlink -f "$path" 2>/dev/null || true)"
+    [[ -n "$resolved" ]] || fail "$path is unreadable"
 
     case "$expected_kind" in
       runtime)
-        [[ "$link_target" == "$TEST_HOME/terminalenv/$source" ]] || fail "$path pointed to $link_target, expected $TEST_HOME/terminalenv/$source"
+        [[ "$resolved" == "$TEST_HOME/terminalenv/home/$relative_path" ]] || fail "$path resolved to $resolved, expected $TEST_HOME/terminalenv/home/$relative_path"
         ;;
       store)
-        [[ "$link_target" == /nix/store/* ]] || fail "$path pointed to $link_target, expected /nix/store/*"
+        [[ "$resolved" == /nix/store/* ]] || fail "$path resolved to $resolved, expected /nix/store/*"
         ;;
       *)
         fail "Unknown expected link kind: $expected_kind"
         ;;
     esac
-  done < <(manifest_entries)
+  done < <(home_tree_entries)
 }
 
 assert_bash_works() {
@@ -115,42 +96,9 @@ assert_bash_works() {
     XDG_DATA_HOME="$TEST_HOME/.local/share" \
     XDG_STATE_HOME="$TEST_HOME/.local/state" \
     TERM=xterm-256color \
-    env -u TERMENV bash -i -c 'complete -p ga >/dev/null && [ "$TERMENV" = "$HOME/terminalenv" ]'; then
+    bash -i -c 'complete -p ga >/dev/null && [ -f "${XDG_CONFIG_HOME:-$HOME/.config}/bash/lib.sh" ]'; then
     fail "Interactive bash check failed for $TEST_HOME"
   fi
-}
-
-assert_runtime_root_is_checkout() {
-  [[ -d "$TEST_HOME/terminalenv" ]] || fail "Missing ~/terminalenv checkout"
-  [[ ! -L "$TEST_HOME/terminalenv" ]] || fail "~/terminalenv should not be a symlink"
-}
-
-assert_runtime_root_is_store_materialized() {
-  [[ -d "$TEST_HOME/terminalenv" ]] || fail "Missing ~/terminalenv runtime root"
-  [[ ! -L "$TEST_HOME/terminalenv" ]] || fail "~/terminalenv should not be a symlink"
-}
-
-assert_runtime_files() {
-  local expected_kind="$1"
-  local relative_path
-  local path
-  local resolved
-
-  while IFS= read -r relative_path; do
-    [[ -n "$relative_path" && "$relative_path" != \#* ]] || continue
-    path="$TEST_HOME/terminalenv/$relative_path"
-    [[ -e "$path" || -L "$path" ]] || fail "Missing TERMENV entry $path"
-
-    case "$expected_kind" in
-      runtime)
-        [[ -e "$path" ]] || fail "Missing checkout runtime file $path"
-        ;;
-      store)
-        resolved="$(readlink -f "$path")"
-        [[ "$resolved" == /nix/store/* ]] || fail "$path resolved to $resolved, expected /nix/store/*"
-        ;;
-    esac
-  done < "$RUNTIME_FILES_MANIFEST"
 }
 
 assert_core_paths() {
@@ -158,10 +106,8 @@ assert_core_paths() {
   [[ -L "$TEST_HOME/.profile" ]] || fail "Missing ~/.profile symlink"
   [[ -L "$TEST_HOME/.local/bin/update-packages" ]] || fail "Missing update-packages symlink"
   [[ -x "$TEST_HOME/.local/bin/update-packages" ]] || fail "update-packages is not executable"
-  [[ -e "$TEST_HOME/terminalenv" ]] || fail "Missing ~/terminalenv runtime root"
-  [[ -f "$TEST_HOME/terminalenv/home/bash/lib.sh" ]] || fail "Missing bash support file"
-  [[ -f "$TEST_HOME/terminalenv/home/bash/completions/git" ]] || fail "Missing vendored git completion script"
-  [[ -f "$TEST_HOME/terminalenv/home/nvim/settings.vim" ]] || fail "Missing nvim settings file"
+  [[ -L "$TEST_HOME/.config/nvim/init.vim" ]] || fail "Missing ~/.config/nvim/init.vim symlink"
+  [[ ! -e "$TEST_HOME/.config/nvim/init.lua" ]] || fail "Unexpected ~/.config/nvim/init.lua"
 }
 
 assert_profile_works() {
@@ -173,7 +119,7 @@ assert_profile_works() {
     XDG_DATA_HOME="$TEST_HOME/.local/share" \
     XDG_STATE_HOME="$TEST_HOME/.local/state" \
     TERM=xterm-256color \
-    env -u TERMENV bash -lc '[ "$TERMENV" = "$HOME/terminalenv" ]'; then
+    bash -lc 'case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) exit 1 ;; esac'; then
     fail "Login shell profile check failed for $TEST_HOME"
   fi
 }
@@ -186,8 +132,6 @@ run_script_mode() {
   bash "$TEST_HOME/terminalenv/mksymlinks.sh"
   bash "$TEST_HOME/terminalenv/mksymlinks.sh" >/dev/null
   assert_links runtime
-  assert_runtime_root_is_checkout
-  assert_runtime_files runtime
   assert_core_paths
   assert_profile_works
   assert_bash_works
@@ -195,26 +139,14 @@ run_script_mode() {
 
 assert_generation_entries() {
   local generation="$1"
-  local mode="$2"
 
-  while IFS='|' read -r root source target; do
+  while IFS= read -r relative_path; do
     local home_files_path
 
-    case "$root" in
-      home)
-        home_files_path="$generation/home-files/$target"
-        ;;
-      xdg-config)
-        home_files_path="$generation/home-files/.config/$target"
-        ;;
-      *)
-        fail "Unknown manifest root: $root"
-        ;;
-    esac
+    home_files_path="$generation/home-files/$relative_path"
 
     [[ -e "$home_files_path" || -L "$home_files_path" ]] || fail "Expected generated path missing: $home_files_path"
-  done < <(manifest_entries)
-
+  done < <(home_tree_entries)
 }
 
 run_home_manager_mode() {
@@ -222,7 +154,16 @@ run_home_manager_mode() {
   local generation="$2"
 
   log "Testing Home Manager deployment ($mode) generation output"
-  assert_generation_entries "$generation" "$mode"
+  if [[ "$mode" == "store" ]]; then
+    assert_generation_entries "$generation"
+  else
+    [[ -f "$generation/activate" ]] || fail "Missing activation script for out-of-store mode"
+    grep -q -- '--no-folding --restow home' "$generation/activate" || fail "Out-of-store activation does not restow home/"
+    [[ ! -e "$generation/home-files/.bashrc" ]] || fail "Out-of-store generation should not materialize ~/.bashrc"
+  fi
+
+  [[ -e "$generation/home-files/.config/nvim/hm-generated.lua" ]] || fail "Missing generated Home Manager nvim helper"
+  [[ ! -e "$generation/home-files/.config/nvim/init.lua" ]] || fail "Unexpected generated Home Manager init.lua"
 }
 
 run_script_mode

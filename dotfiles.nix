@@ -1,52 +1,67 @@
-{ config, lib, ... }:
+{ config, lib, pkgs, ... }:
 
 let
-  runtimeFiles = lib.filter (line:
-    line != "" && !lib.hasPrefix "#" line
-  ) (lib.splitString "\n" (builtins.readFile ./runtime-files.txt));
+  cfg = config.dotfiles.links;
+  homeRoot = ./home;
+  homeFiles = lib.filesystem.listFilesRecursive homeRoot;
 
-  runtimeFileSet = lib.fileset.unions (map (path: ./. + "/${path}") runtimeFiles);
+  relativeHomePath = path:
+    lib.removePrefix "${toString homeRoot}/" (toString path);
 
-  repoSourceRoot = lib.fileset.toSource {
-    root = ./.;
-    fileset = runtimeFileSet;
+  storeManagedFiles = lib.listToAttrs (map (path: {
+    name = relativeHomePath path;
+    value = {
+      source = path;
+    };
+  }) homeFiles);
+
+  repoRootArg = lib.escapeShellArg cfg.repoRoot;
+  repoHomeArg = lib.escapeShellArg "${cfg.repoRoot}/home";
+in {
+  options.dotfiles.links = {
+    enable = lib.mkEnableOption "dotfiles deployment";
+
+    mode = lib.mkOption {
+      type = lib.types.enum [ "store" "out-of-store" ];
+      default = "store";
+      description = ''
+        Whether Home Manager should materialize files from the dotfiles tree in
+        the Nix store or restow them from a local checkout.
+      '';
+    };
+
+    repoRoot = lib.mkOption {
+      type = lib.types.str;
+      default = "${config.home.homeDirectory}/terminalenv";
+      example = "${config.home.homeDirectory}/src/dotfiles";
+      description = ''
+        Checkout path used when link mode is `out-of-store`.
+      '';
+    };
   };
-
-  runtimeLinkScript = lib.concatMapStrings (path: ''
-    mkdir -p "$HOME/terminalenv/$(dirname "${path}")"
-    if [ -e "$HOME/terminalenv/${path}" ] && [ ! -L "$HOME/terminalenv/${path}" ]; then
-      errorEcho "Refusing to replace non-symlink runtime file: $HOME/terminalenv/${path}"
-      exit 1
-    fi
-    ln -sfn "${repoSourceRoot}/${path}" "$HOME/terminalenv/${path}"
-  '') runtimeFiles;
-in
-
-{
-  imports = [ ./modules/symlinked-home-files.nix ];
 
   config = lib.mkMerge [
     {
       dotfiles.links.enable = lib.mkDefault true;
       dotfiles.links.mode = lib.mkDefault "out-of-store";
     }
-    (lib.mkIf (config.dotfiles.links.enable && config.dotfiles.links.mode == "out-of-store" && config.dotfiles.links.repoRoot == "${config.home.homeDirectory}/terminalenv") {
-      home.activation.dotfilesOutOfStoreCheck = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-        if [ ! -d "$HOME/terminalenv/home" ]; then
-          errorEcho "Out-of-store dotfiles mode requires a local checkout at $HOME/terminalenv. Use store mode for flake-only consumers, or override TERMENV in ~/.profile.local and set dotfiles.links.repoRoot to match."
-          exit 1
+    (lib.mkIf (cfg.enable && cfg.mode == "store") {
+      home.file = storeManagedFiles;
+
+      home.activation.dotfilesUnstow = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+        if [ -d ${repoHomeArg} ]; then
+          ${pkgs.stow}/bin/stow --dir ${repoRootArg} --target "$HOME" --no-folding --delete home
         fi
       '';
     })
-    (lib.mkIf (config.dotfiles.links.enable && config.dotfiles.links.mode == "store") {
-      home.activation.dotfilesRuntimeFiles = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-        if [ -e "$HOME/terminalenv" ] && [ ! -d "$HOME/terminalenv" ]; then
-          errorEcho "Refusing to replace non-directory runtime root: $HOME/terminalenv"
+    (lib.mkIf (cfg.enable && cfg.mode == "out-of-store") {
+      home.activation.dotfilesRestow = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+        if [ ! -d ${repoHomeArg} ]; then
+          errorEcho "Out-of-store dotfiles mode requires a local checkout at ${cfg.repoRoot}."
           exit 1
         fi
 
-        mkdir -p "$HOME/terminalenv"
-        ${runtimeLinkScript}
+        ${pkgs.stow}/bin/stow --dir ${repoRootArg} --target "$HOME" --no-folding --restow home
       '';
     })
   ];

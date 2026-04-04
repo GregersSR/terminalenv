@@ -43,17 +43,15 @@ if ! shopt -oq posix; then
   fi
 fi
 
+BASH_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}/bash"
 
-export TERMENV="${TERMENV:-$HOME/terminalenv}"
-HERE="${TERMENV}/home/bash"
-
-if [ ! -f "${HERE}/lib.sh" ]; then
-  echo "Error: TERMENV points to '${TERMENV}', but '${HERE}/lib.sh' was not found. Create a checkout at '$HOME/terminalenv' or override TERMENV in ~/.profile.local." >&2
+if [ ! -f "${BASH_CONFIG_HOME}/lib.sh" ]; then
+  echo "Error: expected bash support files under '${BASH_CONFIG_HOME}'." >&2
   return 1
 fi
 
-if [ -f "${HERE}/completions/git" ]; then
-  source "${HERE}/completions/git"
+if [ -f "${BASH_CONFIG_HOME}/completions/git" ]; then
+  source "${BASH_CONFIG_HOME}/completions/git"
 elif [ -f /usr/share/bash-completion/completions/git ]; then
   source /usr/share/bash-completion/completions/git
 else
@@ -61,14 +59,14 @@ else
 fi
 export GIT_COMPLETION_CHECKOUT_NO_GUESS=1
 
-source "${HERE}/lib.sh"
-source "${HERE}/env.sh"
-source "${HERE}/aliases.sh"
-source "${HERE}/prompt.sh"
-source "${HERE}/path.sh"
+source "${BASH_CONFIG_HOME}/lib.sh"
+source "${BASH_CONFIG_HOME}/env.sh"
+source "${BASH_CONFIG_HOME}/aliases.sh"
+source "${BASH_CONFIG_HOME}/prompt.sh"
+source "${BASH_CONFIG_HOME}/path.sh"
 
 if command -v direnv >/dev/null 2>&1; then
   eval "$(direnv hook bash)"
 fi
 
-unset HERE
+unset BASH_CONFIG_HOME

@@ -2,13 +2,6 @@
 
 set -euo pipefail
 
-EXIT_CODE=0
-
-error () {
-    printf '%s\n' "$*" >&2
-    EXIT_CODE=1
-}
-
 resolve_path () {
     local source_path="$1"
     local link_dir
@@ -27,76 +20,19 @@ resolve_path () {
     )
 }
 
-if [[ -z "${TERMENV:-}" ]]; then
-    TERMENV="$(dirname "$(resolve_path "${BASH_SOURCE[0]}")")"
-fi
-
-SYMLINKS_FILE="${TERMENV}/symlinks.txt"
-DOT_CONFIG="${XDG_CONFIG_HOME:-${HOME}/.config}"
-
-target_path_for_root () {
-    local root="$1"
-    local relative_path="$2"
-
-    case "$root" in
-        home)
-            printf '%s/%s\n' "$HOME" "$relative_path"
-            ;;
-        xdg-config)
-            printf '%s/%s\n' "$DOT_CONFIG" "$relative_path"
-            ;;
-        *)
-            error "ERROR: Unknown target root '$root' in $SYMLINKS_FILE"
-            return 1
-            ;;
-    esac
-}
-
-link () {
-    local target="$1"
-    local link_name="$2"
-    local target_abs
-    local current_target
-
-    target_abs="$(resolve_path "$target")"
-    printf '%s -> %s' "$link_name" "$target"
-
-    if [[ -e "$link_name" || -L "$link_name" ]]; then
-        if [[ -L "$link_name" ]]; then
-            current_target="$(resolve_path "$link_name" 2>/dev/null || true)"
-            if [[ "$target_abs" != "$current_target" ]]; then
-                error ". ERROR: $link_name is already a link that points to $current_target."
-            else
-                printf '.\n'
-            fi
-        else
-            error ". ERROR: $link_name already exists!"
-        fi
-    else
-        if ! mkdir -p "$(dirname "$link_name")"; then
-            error ". ERROR: Cannot create $(dirname "$link_name")!"
-        fi
-        printf '.\n'
-        ln -s "$target" "$link_name" || EXIT_CODE=1
-    fi
-}
-
-if [[ ! -f "$SYMLINKS_FILE" ]]; then
-    error "ERROR: symlink manifest not found: $SYMLINKS_FILE"
+fail() {
+    printf '%s\n' "$*" >&2
     exit 1
+}
+
+if ! command -v stow >/dev/null 2>&1; then
+    fail "stow is required for native dotfiles deployment"
 fi
 
-while IFS='|' read -r root source target; do
-    if [[ -z "$root" || "$root" == \#* ]]; then
-        continue
-    fi
+REPO_ROOT="$(dirname "$(resolve_path "${BASH_SOURCE[0]}")")"
 
-    if [[ -z "$source" || -z "$target" ]]; then
-        error "ERROR: Invalid symlink entry in $SYMLINKS_FILE: $root|$source|$target"
-        continue
-    fi
+if [[ ! -d "$REPO_ROOT/home" ]]; then
+    fail "dotfiles package directory not found: $REPO_ROOT/home"
+fi
 
-    link "${TERMENV}/${source}" "$(target_path_for_root "$root" "$target")"
-done < "$SYMLINKS_FILE"
-
-exit "$EXIT_CODE"
+stow --dir "$REPO_ROOT" --target "$HOME" --no-folding --restow home

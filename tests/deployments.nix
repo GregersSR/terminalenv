@@ -34,7 +34,7 @@ let
   };
 
   check = pkgs.runCommandLocal "deployment-tests" {
-    nativeBuildInputs = [ pkgs.bash pkgs.coreutils ];
+    nativeBuildInputs = [ pkgs.bash pkgs.coreutils pkgs.stow ];
     allowSubstitutes = false;
     preferLocalBuild = true;
   } ''
@@ -43,7 +43,6 @@ let
 
     export ACTIVATION_OUT_OF_STORE="${mkCheckActivation "out-of-store"}"
     export ACTIVATION_STORE="${mkCheckActivation "store"}"
-    export EXPECTED_OUT_OF_STORE_ROOT="${repoRoot}"
 
     ${pkgs.bash}/bin/bash ${repoRoot}/tests/test-deployments-in-nix-check.sh
     touch "$out"

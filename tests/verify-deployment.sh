@@ -3,10 +3,10 @@
 set -euo pipefail
 
 REPO_ROOT=/repo
-MANIFEST="$REPO_ROOT/symlinks.txt"
-RUNTIME_FILES_MANIFEST="$REPO_ROOT/runtime-files.txt"
+REPO_HOME="$REPO_ROOT/home"
 TEST_ROOT="${TEST_ROOT:-/tmp/terminalenv-tests}"
 DOTFILES_FLAKE_ROOT="$TEST_ROOT/dotfiles-flake"
+STOW_BIN_DIR=""
 
 cleanup() {
   rm -rf "$TEST_ROOT"
@@ -22,6 +22,23 @@ fail() {
   exit 1
 }
 
+home_tree_entries() {
+  (
+    cd "$REPO_HOME"
+    find . -type f -printf '%P\n' | sort
+  )
+}
+
+ensure_stow() {
+  if [[ -n "$STOW_BIN_DIR" ]]; then
+    return
+  fi
+
+  local stow_path
+  stow_path="$(nix --extra-experimental-features 'nix-command flakes' build --impure --no-link --print-out-paths --expr 'let flake = builtins.getFlake ("path:" + toString /repo); in flake.inputs.nixpkgs.legacyPackages.${builtins.currentSystem}.stow')"
+  STOW_BIN_DIR="$stow_path/bin"
+}
+
 setup_home() {
   local name="$1"
 
@@ -33,7 +50,6 @@ setup_home() {
   export XDG_DATA_HOME="$HOME/.local/share"
   export XDG_STATE_HOME="$HOME/.local/state"
   export TERM=xterm-256color
-  unset TERMENV
 
   rm -rf "$HOME"
   mkdir -p "$HOME" "$XDG_STATE_HOME/nix/profiles" "$XDG_STATE_HOME/home-manager/gcroots"
@@ -64,100 +80,47 @@ assert_core_files_exist() {
   [[ -f "$HOME/.tmux.conf" ]] || fail "Missing ~/.tmux.conf"
   [[ -f "$HOME/.latexmkrc" ]] || fail "Missing ~/.latexmkrc"
   [[ -x "$HOME/.local/bin/update-packages" ]] || fail "update-packages is not executable"
-  [[ -e "$HOME/terminalenv" ]] || fail "Missing ~/terminalenv runtime root"
-  [[ -f "$HOME/terminalenv/home/bash/lib.sh" ]] || fail "Missing runtime bash support file"
-  [[ -f "$HOME/terminalenv/home/bash/completions/git" ]] || fail "Missing runtime vendored git completion script"
-  [[ -f "$HOME/terminalenv/home/nvim/settings.vim" ]] || fail "Missing runtime nvim settings file"
-  [[ -f "$XDG_CONFIG_HOME/home-manager/flake.nix" ]] || fail "Missing Home Manager flake link"
+  [[ -f "$XDG_CONFIG_HOME/nvim/init.vim" ]] || fail "Missing ~/.config/nvim/init.vim"
+  [[ ! -e "$XDG_CONFIG_HOME/nvim/init.lua" ]] || fail "Unexpected ~/.config/nvim/init.lua"
   [[ -d "$XDG_CONFIG_HOME/git/template" ]] || fail "Missing git template directory"
 }
 
 assert_links() {
   local expected_kind="$1"
   local path
-  local link_target
+  local resolved
 
-  while IFS='|' read -r root source target; do
-    if [[ -z "$root" || "$root" == \#* ]]; then
-      continue
-    fi
-
-    if [[ "$root" == "termenv" ]]; then
-      continue
-    fi
-
-    case "$root" in
-      home)
-        path="$HOME/$target"
-        ;;
-      xdg-config)
-        path="$XDG_CONFIG_HOME/$target"
-        ;;
-      *)
-        fail "Unknown manifest root: $root"
-        ;;
-    esac
+  while IFS= read -r relative_path; do
+    path="$HOME/$relative_path"
 
     [[ -L "$path" ]] || fail "$path is not a symlink"
-    link_target="$(readlink "$path")"
+    resolved="$(readlink -f "$path")"
 
     case "$expected_kind" in
       runtime)
-        [[ "$link_target" == "$HOME/terminalenv/$source" ]] || fail "$path pointed to $link_target, expected $HOME/terminalenv/$source"
+        [[ "$resolved" == "$HOME/terminalenv/home/$relative_path" ]] || fail "$path resolved to $resolved, expected $HOME/terminalenv/home/$relative_path"
         ;;
       store)
-        [[ "$link_target" == /nix/store/* ]] || fail "$path pointed to $link_target, expected /nix/store/*"
+        [[ "$resolved" == /nix/store/* ]] || fail "$path resolved to $resolved, expected /nix/store/*"
         ;;
       *)
         fail "Unknown expected link kind: $expected_kind"
         ;;
     esac
-  done < "$MANIFEST"
-}
-
-assert_runtime_files() {
-  local expected_kind="$1"
-  local relative_path
-  local path
-  local resolved
-
-  while IFS= read -r relative_path; do
-    [[ -n "$relative_path" && "$relative_path" != \#* ]] || continue
-    path="$HOME/terminalenv/$relative_path"
-    [[ -e "$path" || -L "$path" ]] || fail "Missing TERMENV entry $path"
-
-    case "$expected_kind" in
-      runtime)
-        [[ -e "$path" ]] || fail "Missing checkout runtime file $path"
-        ;;
-      store)
-        resolved="$(readlink -f "$path")"
-        [[ "$resolved" == /nix/store/* ]] || fail "$path resolved to $resolved, expected /nix/store/*"
-        ;;
-      *)
-        fail "Unknown TERMENV entry kind: $expected_kind"
-        ;;
-    esac
-  done < "$RUNTIME_FILES_MANIFEST"
+  done < <(home_tree_entries)
 }
 
 assert_bash_works() {
-  env -u TERMENV bash -i -c 'complete -p ga >/dev/null && [ "$TERMENV" = "$HOME/terminalenv" ] && [ -f "$TERMENV/home/bash/lib.sh" ]'
+  bash -i -c 'complete -p ga >/dev/null && [ -f "${XDG_CONFIG_HOME:-$HOME/.config}/bash/lib.sh" ]'
 }
 
 assert_profile_works() {
-  env -u TERMENV bash -lc '[ "$TERMENV" = "$HOME/terminalenv" ] && [ -f "$TERMENV/home/bash/lib.sh" ]'
+  bash -lc 'case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) exit 1 ;; esac'
 }
 
-assert_runtime_root_is_checkout() {
-  [[ -d "$HOME/terminalenv" ]] || fail "~/terminalenv is not a directory checkout"
-  [[ ! -L "$HOME/terminalenv" ]] || fail "~/terminalenv should not be a symlink"
-  [[ -f "$HOME/terminalenv/home/bash/bashrc" ]] || fail "~/terminalenv checkout is missing bash config"
-}
-
-assert_runtime_root_is_store_materialized() {
-  [[ -d "$HOME/terminalenv" ]] || fail "Missing ~/terminalenv"
-  [[ ! -L "$HOME/terminalenv" ]] || fail "~/terminalenv should not be a symlink"
+assert_neovim_home_manager_files() {
+  [[ -f "$XDG_CONFIG_HOME/nvim/hm-generated.lua" ]] || fail "Missing ~/.config/nvim/hm-generated.lua"
+  [[ ! -e "$XDG_CONFIG_HOME/nvim/init.lua" ]] || fail "Unexpected ~/.config/nvim/init.lua"
 }
 
 assert_no_dangling_symlinks() {
@@ -170,27 +133,6 @@ assert_no_dangling_symlinks() {
   fi
 }
 
-assert_termenv_references_resolve() {
-  local -a scan_paths=()
-  local references
-  local reference
-  local relative_path
-
-  for path in "$HOME/.bashrc" "$HOME/.profile" "$HOME/.zshrc" "$HOME/.zshenv" "$XDG_CONFIG_HOME"; do
-    [[ -e "$path" ]] && scan_paths+=("$path")
-  done
-
-  references="$({ grep -RhoE '\$TERMENV(/[A-Za-z0-9._-]+)+' "${scan_paths[@]}" 2>/dev/null || true; grep -RhoE '\$\{TERMENV\}(/[A-Za-z0-9._-]+)+' "${scan_paths[@]}" 2>/dev/null || true; } | sort -u)"
-
-  while IFS= read -r reference; do
-    [[ -n "$reference" ]] || continue
-    relative_path="${reference#\$TERMENV/}"
-    relative_path="${relative_path#\$\{TERMENV\}/}"
-
-    [[ -e "$HOME/terminalenv/$relative_path" ]] || fail "Missing TERMENV target for reference $reference -> $HOME/terminalenv/$relative_path"
-  done <<< "$references"
-}
-
 assert_home_manager_profile_state() {
   [[ -L "$XDG_STATE_HOME/nix/profiles/home-manager" ]] || fail "Home Manager profile symlink was not created in XDG state"
 }
@@ -200,7 +142,7 @@ assert_git_config_template_dir() {
 }
 
 assert_idempotent_script() {
-  bash "$HOME/terminalenv/mksymlinks.sh" >/dev/null
+  PATH="$STOW_BIN_DIR:$PATH" bash "$HOME/terminalenv/mksymlinks.sh" >/dev/null
 }
 
 assert_idempotent_activation() {
@@ -303,17 +245,15 @@ assert_out_of_store_activation_failure() {
 run_script_mode() {
   setup_home script
   seed_checkout
+   ensure_stow
   log "Testing native symlink deployment"
-  bash "$HOME/terminalenv/mksymlinks.sh"
+  PATH="$STOW_BIN_DIR:$PATH" bash "$HOME/terminalenv/mksymlinks.sh"
   assert_idempotent_script
   assert_links runtime
-  assert_runtime_root_is_checkout
-  assert_runtime_files runtime
   assert_no_dangling_symlinks
   assert_core_files_exist
   assert_profile_works
   assert_bash_works
-  assert_termenv_references_resolve
   [[ ! -e "$XDG_STATE_HOME/nix/profiles/home-manager" ]] || fail "Script mode unexpectedly created a Home Manager profile"
 }
 
@@ -331,18 +271,12 @@ run_home_manager_mode() {
   activation="$(build_activation "$mode")"
   "$activation/activate"
   assert_idempotent_activation "$activation"
-  assert_links store
-  if [[ "$expected_kind" == "runtime" ]]; then
-    assert_runtime_root_is_checkout
-  else
-    assert_runtime_root_is_store_materialized
-  fi
-  assert_runtime_files "$expected_kind"
+  assert_links "$expected_kind"
   assert_no_dangling_symlinks
   assert_core_files_exist
+  assert_neovim_home_manager_files
   assert_profile_works
   assert_bash_works
-  assert_termenv_references_resolve
   assert_home_manager_profile_state
   assert_git_config_template_dir
 }
@@ -366,13 +300,11 @@ run_external_flake_module_mode() {
   "$activation/activate"
   assert_idempotent_activation "$activation"
   assert_links store
-  assert_runtime_root_is_store_materialized
-  assert_runtime_files store
   assert_no_dangling_symlinks
   assert_core_files_exist
+  assert_neovim_home_manager_files
   assert_profile_works
   assert_bash_works
-  assert_termenv_references_resolve
   assert_home_manager_profile_state
   assert_git_config_template_dir
 }

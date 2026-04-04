@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 {
   nix = {
@@ -36,9 +36,6 @@
       enable = true;
       vimAlias = true;
       defaultEditor = true;
-      extraConfig = ''
-      source $TERMENV/home/nvim/settings.vim
-      ''; 	
       plugins = with pkgs.vimPlugins; [
         nvim-treesitter.withAllGrammars
         plenary-nvim
@@ -96,5 +93,10 @@
     difftastic = {
       enable = true;
     };
+  };
+
+  xdg.configFile."nvim/init.lua".enable = lib.mkForce false;
+  xdg.configFile."nvim/hm-generated.lua" = lib.mkIf config.programs.neovim.enable {
+    text = config.programs.neovim.initLua;
   };
 }

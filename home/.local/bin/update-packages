@@ -12,7 +12,7 @@ while [ -L "$SCRIPT_PATH" ]; do
 done
 
 SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" >/dev/null 2>&1 && pwd)"
-REPO_ROOT="$(cd -P "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd)"
+REPO_ROOT="$(cd -P "$SCRIPT_DIR/../../.." >/dev/null 2>&1 && pwd)"
 SKIP_SYSTEM_UPDATES="${UPDATE_PACKAGES_SKIP_SYSTEM:-0}"
 NIX_CMD="${NIX_CMD:-nix}"
 GIT_CMD="${GIT_CMD:-git}"
