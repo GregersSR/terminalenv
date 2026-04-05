@@ -34,4 +34,5 @@ remove_dir_from_path() {
 wrapper_dir="$(script_dir "$0")"
 PATH="$(remove_dir_from_path "$wrapper_dir" "${PATH-}")"
 export PATH
-exec tree -a "$@"
+
+exec tree -a -I .git "$@"
