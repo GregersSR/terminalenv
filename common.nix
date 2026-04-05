@@ -25,6 +25,7 @@
     fd
     ripgrep
     ownPkgs.repos
+    stow
   ];
 
   home.shell = {
