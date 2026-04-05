@@ -1,2 +1,2 @@
 ~/terminalenv
-~/projects/repos
+~/src/projects/cli-tools
