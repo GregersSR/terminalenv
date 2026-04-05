@@ -35,4 +35,24 @@ if [[ ! -d "$REPO_ROOT/home" ]]; then
     fail "dotfiles package directory not found: $REPO_ROOT/home"
 fi
 
-stow --dir "$REPO_ROOT" --target "$HOME" --dotfiles --no-folding --restow home
+packages=(home)
+
+if [[ "$#" -gt 0 ]]; then
+    packages+=("$@")
+fi
+
+for package in "${packages[@]}"; do
+    if [[ ! -d "$REPO_ROOT/$package" ]]; then
+        fail "dotfiles package directory not found: $REPO_ROOT/$package"
+    fi
+done
+
+for package in "${packages[@]}"; do
+    package_args=(--dir "$REPO_ROOT" --target "$HOME" --restow "$package")
+
+    if [[ "$package" == repos ]]; then
+        package_args=(--dotfiles --no-folding "${package_args[@]}")
+    fi
+
+    stow "${package_args[@]}"
+done

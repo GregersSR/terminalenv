@@ -3,7 +3,6 @@
 set -euo pipefail
 
 REPO_ROOT=/repo
-REPO_HOME="$REPO_ROOT/home"
 TEST_ROOT="${TEST_ROOT:-/tmp/terminalenv-tests}"
 DOTFILES_FLAKE_ROOT="$TEST_ROOT/dotfiles-flake"
 STOW_BIN_DIR=""
@@ -43,11 +42,18 @@ decode_stow_path() {
   printf '%s\n' "$output_path"
 }
 
-home_tree_entries() {
-  (
-    cd "$REPO_HOME"
-    find . -type f -printf '%P\n' | sort
-  )
+package_tree_entries() {
+  local package
+  local relative_path
+
+  for package in "$@"; do
+    (
+      cd "$REPO_ROOT/$package"
+      find . -type f -printf '%P\n' | sort
+    ) | while IFS= read -r relative_path; do
+      printf '%s\t%s\n' "$package" "$relative_path"
+    done
+  done
 }
 
 ensure_stow() {
@@ -108,13 +114,16 @@ assert_core_files_exist() {
 
 assert_links() {
   local expected_kind="$1"
+  shift
+
+  local package
   local path
   local resolved
-  local raw_relative_path
+  local relative_path
   local deployed_relative_path
 
-  while IFS= read -r raw_relative_path; do
-    deployed_relative_path="$(decode_stow_path "$raw_relative_path")"
+  while IFS=$'\t' read -r package relative_path; do
+    deployed_relative_path="$(decode_stow_path "$relative_path")"
     path="$HOME/$deployed_relative_path"
 
     [[ -e "$path" ]] || fail "$path does not exist"
@@ -122,7 +131,7 @@ assert_links() {
 
     case "$expected_kind" in
       runtime)
-        [[ "$resolved" == "$HOME/terminalenv/home/$raw_relative_path" ]] || fail "$path resolved to $resolved, expected $HOME/terminalenv/home/$raw_relative_path"
+        [[ "$resolved" == "$HOME/terminalenv/$package/$relative_path" ]] || fail "$path resolved to $resolved, expected $HOME/terminalenv/$package/$relative_path"
         ;;
       store)
         [[ "$resolved" == /nix/store/* ]] || fail "$path resolved to $resolved, expected /nix/store/*"
@@ -131,7 +140,7 @@ assert_links() {
         fail "Unknown expected link kind: $expected_kind"
         ;;
     esac
-  done < <(home_tree_entries)
+  done < <(package_tree_entries "$@")
 }
 
 assert_bash_works() {
@@ -180,28 +189,28 @@ assert_git_diff_external() {
 }
 
 assert_git_init_uses_repos() {
-  local fake_bin="$TEST_ROOT/fakebin"
-  local probe_file="$TEST_ROOT/repos-probe"
   local repo_path="$TEST_ROOT/templated-repo"
+  local gitignore_path="$repo_path/.gitignore"
+  local home_manager_path
 
-  rm -rf "$fake_bin" "$repo_path" "$probe_file"
-  mkdir -p "$fake_bin"
+  rm -rf "$repo_path"
+  home_manager_path="$(readlink -f "$XDG_STATE_HOME/nix/profiles/home-manager/home-path")"
+  PATH="$home_manager_path/bin:$PATH" "$HOME/.local/bin/git" init "$repo_path" >/dev/null
 
-  cat > "$fake_bin/repos" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
+  [[ -f "$gitignore_path" ]] || fail "git init did not apply the repos template"
+}
 
-[[ "${1-}" == init ]] || exit 1
-shift
+assert_git_init_materializes_template_files() {
+  local repo_path="$TEST_ROOT/materialized-template-repo"
+  local hook_path="$repo_path/.git/hooks/pre-commit.sample"
+  local system_git
 
-printf '%s\n' "$*" > "$REPOS_PROBE_FILE"
-mkdir -p "${1:-.}"
-EOF
-  chmod +x "$fake_bin/repos"
+  rm -rf "$repo_path"
+  system_git="$(command -v git)"
+  "$system_git" init "$repo_path" >/dev/null
 
-  PATH="$HOME/.local/bin:$fake_bin:$PATH" REPOS_PROBE_FILE="$probe_file" git init "$repo_path" >/dev/null
-
-  [[ "$repo_path" == "$(< "$probe_file")" ]] || fail "git init did not delegate to repos init"
+  [[ -e "$hook_path" ]] || fail "git init did not copy the expected hook template"
+  [[ ! -L "$hook_path" ]] || fail "git init copied a symlinked hook template instead of materializing it"
 }
 
 assert_idempotent_script() {
@@ -313,14 +322,14 @@ run_script_mode() {
   log "Testing native symlink deployment"
   PATH="$STOW_BIN_DIR:$PATH" bash "$HOME/terminalenv/mksymlinks.sh"
   assert_idempotent_script
-  assert_links runtime
+  assert_links runtime home
   assert_no_dangling_symlinks
   assert_core_files_exist
   assert_profile_works
   assert_git_config_template_dir
   assert_git_config_local_override
   assert_git_diff_external
-  assert_git_init_uses_repos
+  assert_git_init_materializes_template_files
   assert_bash_works
   [[ ! -e "$XDG_STATE_HOME/nix/profiles/home-manager" ]] || fail "Script mode unexpectedly created a Home Manager profile"
 }
@@ -339,7 +348,7 @@ run_home_manager_mode() {
   activation="$(build_activation "$mode")"
   "$activation/activate"
   assert_idempotent_activation "$activation"
-  assert_links "$expected_kind"
+  assert_links "$expected_kind" home repos
   assert_no_dangling_symlinks
   assert_core_files_exist
   assert_neovim_home_manager_files
@@ -350,6 +359,9 @@ run_home_manager_mode() {
   assert_git_config_local_override
   assert_git_diff_external
   assert_git_init_uses_repos
+  if [[ "$mode" == "out-of-store" ]]; then
+    assert_git_init_materializes_template_files
+  fi
 }
 
 run_external_flake_module_mode() {
@@ -370,7 +382,7 @@ run_external_flake_module_mode() {
   activation="$(build_external_consumer_activation "$mode")"
   "$activation/activate"
   assert_idempotent_activation "$activation"
-  assert_links store
+  assert_links store home repos
   assert_no_dangling_symlinks
   assert_core_files_exist
   assert_neovim_home_manager_files
