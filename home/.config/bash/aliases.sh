@@ -104,7 +104,7 @@ else
 fi
 
 if cmd_exists home-manager; then
-	alias hms='home-manager switch'
+	alias hms='home-manager switch --flake ~/terminalenv#gsr'
 fi
 
 # Other
