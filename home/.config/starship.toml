@@ -48,9 +48,10 @@ format = '[‹](yellow)[$symbol$branch(:$remote_branch)]($style)'
 # mangler "dirty" (* i ohmyzsh), så "untracked" er ?).
 # manger 
 [git_status]
-format = "$untracked$ahead_behind $index_added$index_modified$renamed$index_deleted$worktree_modified$worktree_deleted$worktree_added$conflicted$stashed[›](yellow)"
+format = "$dirty$untracked$ahead_behind $index_added$index_modified$renamed$index_deleted$worktree_modified$worktree_deleted$worktree_added$conflicted$stashed[›](yellow)"
 ahead = '[➔](blue)'
-untracked = '[*](red)'
+dirty = '[*](red)'
+untracked = '[?](red)'
 modified = '[M](red)'
 staged = '[A](green)'
 renamed = '[R](green)'

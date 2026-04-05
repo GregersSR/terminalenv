@@ -31,7 +31,9 @@ alias gcB='git checkout -B'
 alias gca='git commit --verbose --all'
 alias gcd='git checkout $(git_develop_branch)'
 alias gcm='git checkout $(git_main_branch)'
+# gd uses Git's configured external diff; gdp is plain diff with --no-ext-diff.
 alias gd='git diff'
+alias gdp='git diff --no-ext-diff'
 alias gds='git diff --staged'
 alias gf='git fetch'
 alias gl='git pull'
@@ -63,6 +65,7 @@ if declare -F __git_complete >/dev/null 2>&1; then
   __git_complete gcd _git_checkout
   __git_complete gcm _git_checkout
   __git_complete gd _git_diff
+  __git_complete gdp _git_diff
   __git_complete gds _git_diff
   __git_complete gf _git_fetch
   __git_complete gl _git_pull

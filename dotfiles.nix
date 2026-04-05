@@ -8,8 +8,17 @@ let
   relativeHomePath = path:
     lib.removePrefix "${toString homeRoot}/" (toString path);
 
+  decodeStowSegment = segment:
+    if lib.hasPrefix "dot-" segment then
+      ".${lib.removePrefix "dot-" segment}"
+    else
+      segment;
+
+  decodeStowPath = relativePath:
+    lib.concatStringsSep "/" (map decodeStowSegment (lib.splitString "/" relativePath));
+
   storeManagedFiles = lib.listToAttrs (map (path: {
-    name = relativeHomePath path;
+    name = decodeStowPath (relativeHomePath path);
     value = {
       source = path;
     };
@@ -50,7 +59,7 @@ in {
 
       home.activation.dotfilesUnstow = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
         if [ -d ${repoHomeArg} ]; then
-          ${pkgs.stow}/bin/stow --dir ${repoRootArg} --target "$HOME" --no-folding --delete home
+          ${pkgs.stow}/bin/stow --dir ${repoRootArg} --target "$HOME" --dotfiles --no-folding --delete home
         fi
       '';
     })
@@ -61,7 +70,7 @@ in {
           exit 1
         fi
 
-        ${pkgs.stow}/bin/stow --dir ${repoRootArg} --target "$HOME" --no-folding --restow home
+        ${pkgs.stow}/bin/stow --dir ${repoRootArg} --target "$HOME" --dotfiles --no-folding --restow home
       '';
     })
   ];

@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, ownPkgs, ... }:
 
 {
   nix = {
@@ -16,6 +16,7 @@
   home.packages = with pkgs; [
     cargo
     gef
+    git
     git-annex
     jqp
     git-filter-repo
@@ -23,6 +24,7 @@
     pandoc
     fd
     ripgrep
+    ownPkgs.repos
   ];
 
   home.shell = {
@@ -58,23 +60,6 @@
         enable = true;
         plugins = ["git"];
         theme = "sunrise";
-      };
-    };
-
-    git = {
-      enable = true;
-      settings = {
-        core = {
-          autocrlf = "input";
-          editor = "nvim";
-        };
-        difftool = {
-          prompt = false;
-          difftastic.cmd = ''${pkgs.difftastic}/bin/difft "$LOCAL" "$REMOTE"'';
-        };
-        pull.ff = "only";
-        init.defaultBranch = "main";
-        init.templateDir = "${config.xdg.configHome}/git/template";
       };
     };
 

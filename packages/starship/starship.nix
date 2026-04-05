@@ -2,6 +2,7 @@
   lib,
   stdenv,
   fetchFromGitHub,
+  fetchpatch,
   rustPlatform,
   installShellFiles,
   writableTmpDirAsHomeHook,
@@ -12,14 +13,21 @@
 
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "starship";
-  version = "1.24.2+14";
+  version = "unstable-2026-04-05";
 
   src = fetchFromGitHub {
     owner = "starship";
     repo = "starship";
-    rev = "0110bf59c86f6f0f33f95dc614c231acc19547b8";
-    hash = "sha256-MjRkUnMA4SMRaZffosa+RuANr97KKlKBhJEnpaAE+rU=";
+    rev = "85f664b4b657a1add4c73cb931db701b36d8eb3d";
+    hash = "sha256-CqpZuMCl0c8SuikUVHUKS+0WWYYBHTB2IDrRnYTTuaY=";
   };
+
+  patches = [
+    (fetchpatch {
+      url = "https://github.com/starship/starship/commit/4181e732bfcfef31fff7dffb6592a22472a4fd1f.patch";
+      hash = "sha256-oiFTcUWOo1CJCiJ4mWvajRltg7S4mMb16gQox6LsjSQ=";
+    })
+  ];
 
   nativeBuildInputs = [ installShellFiles ];
 
@@ -44,7 +52,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
     ''
   );
 
-  cargoHash = "sha256-wgM42fcVU65mBkj8MjUDHHh9ocPyCACWbOgk07Ffa1E=";
+  cargoHash = "sha256-z9H9xE1R9awZHr4t0r4z/EbY5NQ6O7djc/6AnpjASRw=";
 
   nativeCheckInputs = [
     gitMinimal

@@ -1,4 +1,4 @@
-{ config, pkgs, localpkgs, ... }:
+{ config, pkgs, ownPkgs, ... }:
 
 {
   home = {
@@ -6,13 +6,8 @@
     homeDirectory = "/home/gsr";
     stateVersion = "24.11";
     packages = [
-        localpkgs.starship
+        ownPkgs.starship
     ];
-  };
-
-  programs.git.settings.user = {
-    name = "Gregers Rørdam";
-    email = "gregers@rordam.dk";
   };
 
   programs.gh.enable = true;

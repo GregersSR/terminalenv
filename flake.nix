@@ -4,19 +4,24 @@
   inputs = {
     # Specify the source of Home Manager and Nixpkgs.
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    cli-tools = {
+      url = "github:GregersSR/cli-tools/6097dd241e5203686e173477c22d3129fdfa7cad";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { nixpkgs, home-manager, ... }:
+  outputs = { cli-tools, nixpkgs, home-manager, ... }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
-      packages = import ./packages pkgs;
+      repoPkgs = import ./packages pkgs;
+      ownPkgs = cli-tools.packages.${system} // repoPkgs;
       extraSpecialArgs = {
-        localpkgs = packages;
+        inherit ownPkgs;
         nixpkgsFlake = nixpkgs;
       };
       modules = {
@@ -26,7 +31,7 @@
         t14 = ./t14.nix;
       };
       deploymentTests = import ./tests/deployments.nix {
-        inherit pkgs modules;
+        inherit pkgs modules ownPkgs;
         nixpkgsFlake = nixpkgs;
         homeManager = home-manager;
       };
@@ -43,6 +48,7 @@
         # to pass through arguments to home.nix
       };
       apps.${system}.test-deployments = deploymentTests.test;
+      packages.${system} = ownPkgs;
       checks.${system}.deployment-tests = deploymentTests.check;
       inherit modules;
     };

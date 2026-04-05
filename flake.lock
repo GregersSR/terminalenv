@@ -1,5 +1,26 @@
 {
   "nodes": {
+    "cli-tools": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1775390066,
+        "narHash": "sha256-BGMPXfXIxa3yyDd1UmjKBeh/nEXDlEyAP/6WnXPtwGA=",
+        "owner": "GregersSR",
+        "repo": "cli-tools",
+        "rev": "6097dd241e5203686e173477c22d3129fdfa7cad",
+        "type": "github"
+      },
+      "original": {
+        "owner": "GregersSR",
+        "repo": "cli-tools",
+        "rev": "6097dd241e5203686e173477c22d3129fdfa7cad",
+        "type": "github"
+      }
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -38,6 +59,7 @@
     },
     "root": {
       "inputs": {
+        "cli-tools": "cli-tools",
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs"
       }

@@ -6,10 +6,6 @@
 
 let
   flake = builtins.getFlake ("path:" + flakeRoot);
-  moduleRoot = builtins.path {
-    path = builtins.toPath flakeRoot;
-    name = "dotfiles-source";
-  };
   pkgs = flake.inputs.nixpkgs.legacyPackages.${builtins.currentSystem};
   lib = pkgs.lib;
 in
@@ -17,11 +13,12 @@ in
   inherit pkgs;
   extraSpecialArgs = {
     nixpkgsFlake = flake.inputs.nixpkgs;
+    ownPkgs = flake.outputs.packages.${builtins.currentSystem};
   };
   modules = [
-    (moduleRoot + "/dotfiles.nix")
-    (moduleRoot + "/common.nix")
-    (moduleRoot + "/nixpkgs-registry.nix")
+    flake.outputs.modules.dotfiles
+    flake.outputs.modules.common
+    flake.outputs.modules.nixpkgs-registry
     ({ lib, ... }: {
       home.username = "tester";
       home.homeDirectory = homeDirectory;

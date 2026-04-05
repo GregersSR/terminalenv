@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir() {
+  CDPATH='' cd -- "$(dirname -- "$1")" && pwd
+}
+
+remove_dir_from_path() {
+  local remove="$1"
+  local path_value="$2"
+  local filtered=""
+  local separator=""
+  local entry
+  local old_ifs="$IFS"
+
+  IFS=:
+  for entry in $path_value; do
+    if [[ -z "$entry" ]]; then
+      entry='.'
+    fi
+
+    if [[ "$entry" == "$remove" ]]; then
+      continue
+    fi
+
+    filtered+="${separator}${entry}"
+    separator=:
+  done
+  IFS="$old_ifs"
+
+  printf '%s\n' "$filtered"
+}
+
+wrapper_dir="$(script_dir "$0")"
+PATH="$(remove_dir_from_path "$wrapper_dir" "${PATH-}")"
+export PATH
+
+if [[ "${1-}" == init ]]; then
+  shift
+
+  if [[ "$#" -le 1 && "${1-}" != -* ]]; then
+    exec repos init "$@"
+  fi
+
+  set -- init "$@"
+fi
+
+exec git "$@"

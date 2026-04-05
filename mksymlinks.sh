@@ -35,4 +35,4 @@ if [[ ! -d "$REPO_ROOT/home" ]]; then
     fail "dotfiles package directory not found: $REPO_ROOT/home"
 fi
 
-stow --dir "$REPO_ROOT" --target "$HOME" --no-folding --restow home
+stow --dir "$REPO_ROOT" --target "$HOME" --dotfiles --no-folding --restow home

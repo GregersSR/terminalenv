@@ -22,6 +22,27 @@ fail() {
   exit 1
 }
 
+decode_stow_path() {
+  local input_path="$1"
+  local output_path=""
+  local segment
+  local separator=""
+  local old_ifs="$IFS"
+
+  IFS=/
+  for segment in $input_path; do
+    if [[ "$segment" == dot-* ]]; then
+      segment=".${segment#dot-}"
+    fi
+
+    output_path+="${separator}${segment}"
+    separator=/
+  done
+  IFS="$old_ifs"
+
+  printf '%s\n' "$output_path"
+}
+
 home_tree_entries() {
   (
     cd "$REPO_HOME"
@@ -89,16 +110,19 @@ assert_links() {
   local expected_kind="$1"
   local path
   local resolved
+  local raw_relative_path
+  local deployed_relative_path
 
-  while IFS= read -r relative_path; do
-    path="$HOME/$relative_path"
+  while IFS= read -r raw_relative_path; do
+    deployed_relative_path="$(decode_stow_path "$raw_relative_path")"
+    path="$HOME/$deployed_relative_path"
 
-    [[ -L "$path" ]] || fail "$path is not a symlink"
+    [[ -e "$path" ]] || fail "$path does not exist"
     resolved="$(readlink -f "$path")"
 
     case "$expected_kind" in
       runtime)
-        [[ "$resolved" == "$HOME/terminalenv/home/$relative_path" ]] || fail "$path resolved to $resolved, expected $HOME/terminalenv/home/$relative_path"
+        [[ "$resolved" == "$HOME/terminalenv/home/$raw_relative_path" ]] || fail "$path resolved to $resolved, expected $HOME/terminalenv/home/$raw_relative_path"
         ;;
       store)
         [[ "$resolved" == /nix/store/* ]] || fail "$path resolved to $resolved, expected /nix/store/*"
@@ -138,7 +162,46 @@ assert_home_manager_profile_state() {
 }
 
 assert_git_config_template_dir() {
-  [[ "$(git config --global init.templateDir)" == "$XDG_CONFIG_HOME/git/template" ]] || fail "git init.templateDir was not configured correctly"
+  local template_dir
+
+  template_dir="$(git config --global init.templateDir)"
+
+  if [[ "$template_dir" != "$XDG_CONFIG_HOME/git/template" && "$template_dir" != "~/.config/git/template" ]]; then
+    fail "git init.templateDir was not configured correctly: $template_dir"
+  fi
+}
+
+assert_git_config_local_override() {
+  [[ "$(git config --global include.path)" == "~/.config/git/config.local" ]] || fail "git include.path was not configured correctly"
+}
+
+assert_git_diff_external() {
+  [[ "$(git config --global diff.external)" == "difft" ]] || fail "git diff.external was not configured correctly"
+}
+
+assert_git_init_uses_repos() {
+  local fake_bin="$TEST_ROOT/fakebin"
+  local probe_file="$TEST_ROOT/repos-probe"
+  local repo_path="$TEST_ROOT/templated-repo"
+
+  rm -rf "$fake_bin" "$repo_path" "$probe_file"
+  mkdir -p "$fake_bin"
+
+  cat > "$fake_bin/repos" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "${1-}" == init ]] || exit 1
+shift
+
+printf '%s\n' "$*" > "$REPOS_PROBE_FILE"
+mkdir -p "${1:-.}"
+EOF
+  chmod +x "$fake_bin/repos"
+
+  PATH="$HOME/.local/bin:$fake_bin:$PATH" REPOS_PROBE_FILE="$probe_file" git init "$repo_path" >/dev/null
+
+  [[ "$repo_path" == "$(< "$probe_file")" ]] || fail "git init did not delegate to repos init"
 }
 
 assert_idempotent_script() {
@@ -213,6 +276,7 @@ build_external_consumer_activation() {
         ];
         extraSpecialArgs = {
           nixpkgsFlake = nixpkgs;
+          ownPkgs = dotfiles.packages.\${system};
         };
       };
     };
@@ -245,7 +309,7 @@ assert_out_of_store_activation_failure() {
 run_script_mode() {
   setup_home script
   seed_checkout
-   ensure_stow
+  ensure_stow
   log "Testing native symlink deployment"
   PATH="$STOW_BIN_DIR:$PATH" bash "$HOME/terminalenv/mksymlinks.sh"
   assert_idempotent_script
@@ -253,6 +317,10 @@ run_script_mode() {
   assert_no_dangling_symlinks
   assert_core_files_exist
   assert_profile_works
+  assert_git_config_template_dir
+  assert_git_config_local_override
+  assert_git_diff_external
+  assert_git_init_uses_repos
   assert_bash_works
   [[ ! -e "$XDG_STATE_HOME/nix/profiles/home-manager" ]] || fail "Script mode unexpectedly created a Home Manager profile"
 }
@@ -279,6 +347,9 @@ run_home_manager_mode() {
   assert_bash_works
   assert_home_manager_profile_state
   assert_git_config_template_dir
+  assert_git_config_local_override
+  assert_git_diff_external
+  assert_git_init_uses_repos
 }
 
 run_external_flake_module_mode() {
@@ -307,6 +378,9 @@ run_external_flake_module_mode() {
   assert_bash_works
   assert_home_manager_profile_state
   assert_git_config_template_dir
+  assert_git_config_local_override
+  assert_git_diff_external
+  assert_git_init_uses_repos
 }
 
 run_script_mode

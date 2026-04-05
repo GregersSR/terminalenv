@@ -1,0 +1,21 @@
+[core]
+	autocrlf = input
+	editor = nvim
+
+[diff]
+	external = difft
+
+[init]
+	defaultBranch = main
+	templateDir = ~/.config/git/template
+
+[pull]
+	ff = only
+
+[user]
+	name = Gregers Rørdam
+	email = gregers@rordam.dk
+
+# Missing include files are ignored, so this stays optional.
+[include]
+	path = ~/.config/git/config.local

@@ -1,4 +1,4 @@
-{ pkgs, homeManager, modules, nixpkgsFlake }:
+{ pkgs, homeManager, modules, nixpkgsFlake, ownPkgs }:
 
 let
   repoRoot = ../.;
@@ -8,6 +8,7 @@ let
       inherit pkgs;
       extraSpecialArgs = {
         inherit nixpkgsFlake;
+        inherit ownPkgs;
       };
       modules = [
         modules.dotfiles
