@@ -13,8 +13,12 @@ done
 
 TESTS_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" >/dev/null 2>&1 && pwd)"
 REPO_ROOT="$(cd -P "$TESTS_DIR/.." >/dev/null 2>&1 && pwd)"
+CONTAINERFILE_PATH="$TESTS_DIR/Containerfile"
+CONTAINERIGNORE_PATH="$TESTS_DIR/.containerignore"
 BASE_NIX_IMAGE="docker.io/nixos/nix@sha256:0b1530edf840d9af519c7f3970cafbbed68d9d9554a83cc9adc04099753117e1"
 CACHED_NIX_IMAGE="localhost/terminalenv-tests:latest"
+IMAGE_COPY_TMPDIR="${IMAGE_COPY_TMPDIR:-/tmp}"
+output_file=""
 
 fail() {
   printf 'FAIL: %s\n' "$*" >&2
@@ -44,40 +48,35 @@ need_cmd() {
 }
 
 cleanup() {
-  if [[ -n "${cid:-}" ]]; then
-    podman rm -f "$cid" >/dev/null 2>&1 || true
+  if [[ -n "$output_file" ]]; then
+    rm -f "$output_file"
   fi
 }
 trap cleanup EXIT
 
 need_cmd podman
+mkdir -p "$IMAGE_COPY_TMPDIR"
 
 printf '==> Ensuring base image %s\n' "$BASE_NIX_IMAGE"
 if ! podman image exists "$BASE_NIX_IMAGE"; then
   podman pull "$BASE_NIX_IMAGE" >/dev/null
 fi
 
-bash_path="$(podman image inspect "$BASE_NIX_IMAGE" --format '{{index .Config.Cmd 0}}')"
-[[ -n "$bash_path" ]] || fail "Could not determine bash path for $BASE_NIX_IMAGE"
+printf '==> Building warmed test image %s\n' "$CACHED_NIX_IMAGE"
+printf '==> Using image copy temp dir %s\n' "$IMAGE_COPY_TMPDIR"
+podman image rm -f "$CACHED_NIX_IMAGE" >/dev/null 2>&1 || true
 
-printf '==> Warming Nix store in a temporary container\n'
-cid="$(podman create --entrypoint "$bash_path" -v "$REPO_ROOT:/repo:ro" "$BASE_NIX_IMAGE" /repo/tests/verify-deployment.sh)"
 if [[ "$VERBOSE" == "1" ]]; then
-  podman start -a "$cid"
+  TMPDIR="$IMAGE_COPY_TMPDIR" podman build --build-arg "BASE_NIX_IMAGE=$BASE_NIX_IMAGE" --no-cache --layers=false --squash-all --tag "$CACHED_NIX_IMAGE" --file "$CONTAINERFILE_PATH" --ignorefile "$CONTAINERIGNORE_PATH" "$REPO_ROOT"
 else
   output_file="$(mktemp)"
-  trap 'rm -f "$output_file"; if [[ -n "${cid:-}" ]]; then podman rm -f "$cid" >/dev/null 2>&1 || true; fi' EXIT
 
-  if podman start -a "$cid" >"$output_file" 2>&1; then
+  if TMPDIR="$IMAGE_COPY_TMPDIR" podman build --build-arg "BASE_NIX_IMAGE=$BASE_NIX_IMAGE" --no-cache --layers=false --squash-all --tag "$CACHED_NIX_IMAGE" --file "$CONTAINERFILE_PATH" --ignorefile "$CONTAINERIGNORE_PATH" "$REPO_ROOT" >"$output_file" 2>&1; then
     grep '^==>' "$output_file" || true
   else
     cat "$output_file" >&2
     exit 1
   fi
 fi
-
-printf '==> Saving warmed image as %s\n' "$CACHED_NIX_IMAGE"
-podman image rm -f "$CACHED_NIX_IMAGE" >/dev/null 2>&1 || true
-podman commit --change "ENTRYPOINT [\"$bash_path\"]" --change 'CMD []' "$cid" "$CACHED_NIX_IMAGE" >/dev/null
 
 printf '==> Test image ready: %s\n' "$CACHED_NIX_IMAGE"

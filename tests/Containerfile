@@ -1,0 +1,10 @@
+ARG BASE_NIX_IMAGE
+FROM ${BASE_NIX_IMAGE}
+
+COPY . /repo
+
+RUN bash /repo/tests/verify-deployment.sh \
+ && rm -rf /repo /tmp/terminalenv-tests
+
+ENTRYPOINT ["bash"]
+CMD ["/repo/tests/verify-deployment.sh"]
