@@ -13,7 +13,7 @@
 
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "starship";
-  version = "unstable-2026-04-05";
+  version = "1.24.2-85f664b4b657a1add4c73cb931db701b36d8eb3d";
 
   src = fetchFromGitHub {
     owner = "starship";
@@ -22,6 +22,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
     hash = "sha256-CqpZuMCl0c8SuikUVHUKS+0WWYYBHTB2IDrRnYTTuaY=";
   };
 
+  # add patch to support a "dirty" marker
   patches = [
     (fetchpatch {
       url = "https://github.com/starship/starship/commit/4181e732bfcfef31fff7dffb6592a22472a4fd1f.patch";
