@@ -58,14 +58,6 @@ update_flake() {
 
   print_section "flake"
   "$NIX_CMD" flake update --commit-lock-file "$REPO_ROOT"
-
-  if $GIT_CMD -C "$REPO_ROOT" diff --quiet -- flake.lock; then
-    printf 'flake.lock unchanged\n'
-    return
-  fi
-
-  "$GIT_CMD" -C "$REPO_ROOT" add flake.lock
-  "$GIT_CMD" -C "$REPO_ROOT" commit -m "Update flake lock"
 }
 
 if [[ "$SKIP_SYSTEM_UPDATES" != "1" ]]; then
