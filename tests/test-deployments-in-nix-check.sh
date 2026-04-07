@@ -12,7 +12,6 @@ while [ -L "$SCRIPT_PATH" ]; do
 done
 TESTS_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" >/dev/null 2>&1 && pwd)"
 REPO_ROOT="${REPO_ROOT:-$(cd -P "$TESTS_DIR/.." >/dev/null 2>&1 && pwd)}"
-REPO_HOME="$REPO_ROOT/home"
 TEST_HOME="${TEST_HOME:-/tmp/terminalenv-test-home}"
 
 : "${ACTIVATION_OUT_OF_STORE:?ACTIVATION_OUT_OF_STORE must be set}"
@@ -27,11 +26,39 @@ log() {
   printf '==> %s\n' "$*"
 }
 
-home_tree_entries() {
-  (
-    cd "$REPO_HOME"
-    find . -type f -printf '%P\n' | sort
-  )
+decode_stow_path() {
+  local input_path="$1"
+  local output_path=""
+  local segment
+  local separator=""
+  local old_ifs="$IFS"
+
+  IFS=/
+  for segment in $input_path; do
+    if [[ "$segment" == dot-* ]]; then
+      segment=".${segment#dot-}"
+    fi
+
+    output_path+="${separator}${segment}"
+    separator=/
+  done
+  IFS="$old_ifs"
+
+  printf '%s\n' "$output_path"
+}
+
+package_tree_entries() {
+  local package
+  local relative_path
+
+  for package in "$@"; do
+    (
+      cd "$REPO_ROOT/$package"
+      find . -type f -printf '%P\n' | sort
+    ) | while IFS= read -r relative_path; do
+      printf '%s\t%s\n' "$package" "$relative_path"
+    done
+  done
 }
 
 installed_path() {
@@ -63,19 +90,22 @@ seed_checkout() {
 
 assert_links() {
   local expected_kind="$1"
+  shift
 
-  while IFS= read -r relative_path; do
+  while IFS=$'\t' read -r package relative_path; do
     local path
     local resolved
+    local deployed_relative_path
 
-    path="$(installed_path "$relative_path")"
-    [[ -L "$path" ]] || fail "$path is not a symlink"
+    deployed_relative_path="$(decode_stow_path "$relative_path")"
+    path="$(installed_path "$deployed_relative_path")"
+    [[ -e "$path" ]] || fail "$path does not exist"
     resolved="$(readlink -f "$path" 2>/dev/null || true)"
     [[ -n "$resolved" ]] || fail "$path is unreadable"
 
     case "$expected_kind" in
       runtime)
-        [[ "$resolved" == "$TEST_HOME/terminalenv/home/$relative_path" ]] || fail "$path resolved to $resolved, expected $TEST_HOME/terminalenv/home/$relative_path"
+        [[ "$resolved" == "$TEST_HOME/terminalenv/$package/$relative_path" ]] || fail "$path resolved to $resolved, expected $TEST_HOME/terminalenv/$package/$relative_path"
         ;;
       store)
         [[ "$resolved" == /nix/store/* ]] || fail "$path resolved to $resolved, expected /nix/store/*"
@@ -84,7 +114,7 @@ assert_links() {
         fail "Unknown expected link kind: $expected_kind"
         ;;
     esac
-  done < <(home_tree_entries)
+  done < <(package_tree_entries "$@")
 }
 
 assert_bash_works() {
@@ -102,11 +132,12 @@ assert_bash_works() {
 }
 
 assert_core_paths() {
-  [[ -L "$TEST_HOME/.bashrc" ]] || fail "Missing ~/.bashrc symlink"
-  [[ -L "$TEST_HOME/.profile" ]] || fail "Missing ~/.profile symlink"
-  [[ -L "$TEST_HOME/.local/bin/update-packages" ]] || fail "Missing update-packages symlink"
+  [[ -e "$TEST_HOME/.bashrc" ]] || fail "Missing ~/.bashrc"
+  [[ -e "$TEST_HOME/.profile" ]] || fail "Missing ~/.profile"
+  [[ -e "$TEST_HOME/.config/opencode/AGENTS.md" ]] || fail "Missing ~/.config/opencode/AGENTS.md"
+  [[ -e "$TEST_HOME/.local/bin/update-packages" ]] || fail "Missing update-packages"
   [[ -x "$TEST_HOME/.local/bin/update-packages" ]] || fail "update-packages is not executable"
-  [[ -L "$TEST_HOME/.config/nvim/init.vim" ]] || fail "Missing ~/.config/nvim/init.vim symlink"
+  [[ -e "$TEST_HOME/.config/nvim/init.vim" ]] || fail "Missing ~/.config/nvim/init.vim"
   [[ ! -e "$TEST_HOME/.config/nvim/init.lua" ]] || fail "Unexpected ~/.config/nvim/init.lua"
 }
 
@@ -131,7 +162,7 @@ run_script_mode() {
   seed_checkout
   bash "$TEST_HOME/terminalenv/mksymlinks.sh"
   bash "$TEST_HOME/terminalenv/mksymlinks.sh" >/dev/null
-  assert_links runtime
+  assert_links runtime home opencode
   assert_core_paths
   assert_profile_works
   assert_bash_works
@@ -140,13 +171,15 @@ run_script_mode() {
 assert_generation_entries() {
   local generation="$1"
 
-  while IFS= read -r relative_path; do
+  while IFS=$'\t' read -r _package relative_path; do
     local home_files_path
+    local deployed_relative_path
 
-    home_files_path="$generation/home-files/$relative_path"
+    deployed_relative_path="$(decode_stow_path "$relative_path")"
+    home_files_path="$generation/home-files/$deployed_relative_path"
 
     [[ -e "$home_files_path" || -L "$home_files_path" ]] || fail "Expected generated path missing: $home_files_path"
-  done < <(home_tree_entries)
+  done < <(package_tree_entries home repos opencode)
 }
 
 run_home_manager_mode() {
@@ -158,7 +191,10 @@ run_home_manager_mode() {
     assert_generation_entries "$generation"
   else
     [[ -f "$generation/activate" ]] || fail "Missing activation script for out-of-store mode"
-    grep -q -- '--no-folding --restow home' "$generation/activate" || fail "Out-of-store activation does not restow home/"
+    grep -q -- '--restow home' "$generation/activate" || fail "Out-of-store activation does not restow home/"
+    grep -q -- '--restow opencode' "$generation/activate" || fail "Out-of-store activation does not restow opencode/"
+    grep -q -- '--restow repos' "$generation/activate" || fail "Out-of-store activation does not restow repos/"
+    grep -q -- '--dotfiles --no-folding' "$generation/activate" || fail "Out-of-store activation is missing repos stow flags"
     [[ ! -e "$generation/home-files/.bashrc" ]] || fail "Out-of-store generation should not materialize ~/.bashrc"
   fi
 

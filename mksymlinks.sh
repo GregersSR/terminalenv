@@ -35,7 +35,7 @@ if [[ ! -d "$REPO_ROOT/home" ]]; then
     fail "dotfiles package directory not found: $REPO_ROOT/home"
 fi
 
-packages=(home)
+packages=(home opencode)
 
 if [[ "$#" -gt 0 ]]; then
     packages+=("$@")

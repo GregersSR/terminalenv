@@ -71,7 +71,7 @@ in {
 
     packages = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ "home" "repos" ];
+      default = [ "home" "repos" "opencode" ];
       description = ''
         Top-level stow packages to deploy.
       '';

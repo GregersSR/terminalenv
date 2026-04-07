@@ -322,7 +322,7 @@ run_script_mode() {
   log "Testing native symlink deployment"
   PATH="$STOW_BIN_DIR:$PATH" bash "$HOME/terminalenv/mksymlinks.sh"
   assert_idempotent_script
-  assert_links runtime home
+  assert_links runtime home opencode
   assert_no_dangling_symlinks
   assert_core_files_exist
   assert_profile_works
@@ -348,7 +348,7 @@ run_home_manager_mode() {
   activation="$(build_activation "$mode")"
   "$activation/activate"
   assert_idempotent_activation "$activation"
-  assert_links "$expected_kind" home repos
+  assert_links "$expected_kind" home repos opencode
   assert_no_dangling_symlinks
   assert_core_files_exist
   assert_neovim_home_manager_files
@@ -382,7 +382,7 @@ run_external_flake_module_mode() {
   activation="$(build_external_consumer_activation "$mode")"
   "$activation/activate"
   assert_idempotent_activation "$activation"
-  assert_links store home repos
+  assert_links store home repos opencode
   assert_no_dangling_symlinks
   assert_core_files_exist
   assert_neovim_home_manager_files

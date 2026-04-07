@@ -1,13 +1,15 @@
 # Dotfiles
 
-Dotfiles repo with one canonical `home/` tree:
+Dotfiles repo with top-level Stow packages:
 
 - native deployment uses `stow`
 - Home Manager supports `out-of-store` and `store` deployments
 
 ## Layout
 
-- `home/`: files laid out exactly as they should appear under `$HOME`
+- `home/`: primary files laid out exactly as they should appear under `$HOME`
+- `opencode/`: Opencode-specific config layered into `$HOME`
+- `repos/`: repo tooling layered into `$HOME`
 - `mksymlinks.sh`: native Stow wrapper
 - `dotfiles.nix`: Home Manager deployment policy
 - `common.nix`: general Home Manager config
@@ -17,17 +19,17 @@ Dotfiles repo with one canonical `home/` tree:
 Native / non-Nix:
 
 - keep a checkout at `~/terminalenv`
-- run `mksymlinks.sh`
+- run `mksymlinks.sh` to restow the default native packages (`home/` and `opencode/`)
 
 Home Manager `out-of-store`:
 
-- restow `home/` from the checkout during activation
+- restow the configured top-level packages from the checkout during activation
 - requires a local checkout at `~/terminalenv` by default
 - if no checkout exists, activation fails with a clear error
 
 Home Manager `store`:
 
-- materialize files from `home/` into the Nix store
+- materialize files from the configured top-level packages into the Nix store
 - works for flake-only consumers with no local checkout
 
 ## External Consumers
