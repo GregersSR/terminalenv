@@ -50,9 +50,5 @@ done
 for package in "${packages[@]}"; do
     package_args=(--dir "$REPO_ROOT" --target "$HOME" --restow "$package")
 
-    if [[ "$package" == repos ]]; then
-        package_args=(--dotfiles --no-folding "${package_args[@]}")
-    fi
-
     stow "${package_args[@]}"
 done

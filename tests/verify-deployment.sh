@@ -21,27 +21,6 @@ fail() {
   exit 1
 }
 
-decode_stow_path() {
-  local input_path="$1"
-  local output_path=""
-  local segment
-  local separator=""
-  local old_ifs="$IFS"
-
-  IFS=/
-  for segment in $input_path; do
-    if [[ "$segment" == dot-* ]]; then
-      segment=".${segment#dot-}"
-    fi
-
-    output_path+="${separator}${segment}"
-    separator=/
-  done
-  IFS="$old_ifs"
-
-  printf '%s\n' "$output_path"
-}
-
 package_tree_entries() {
   local package
   local relative_path
@@ -109,7 +88,8 @@ assert_core_files_exist() {
   [[ -f "$XDG_CONFIG_HOME/latexmk/latexmkrc" ]] || fail "Missing ~/.config/latexmk/latexmkrc"
   [[ -f "$XDG_CONFIG_HOME/nvim/init.vim" ]] || fail "Missing ~/.config/nvim/init.vim"
   [[ ! -e "$XDG_CONFIG_HOME/nvim/init.lua" ]] || fail "Unexpected ~/.config/nvim/init.lua"
-  [[ -d "$XDG_CONFIG_HOME/git/template" ]] || fail "Missing git template directory"
+  [[ -d "$XDG_CONFIG_HOME/repos/template/dot-git" ]] || fail "Missing repos template dot-git directory"
+  [[ -f "$XDG_CONFIG_HOME/repos/template/dot-gitignore" ]] || fail "Missing repos template dot-gitignore file"
 }
 
 assert_links() {
@@ -120,13 +100,11 @@ assert_links() {
   local path
   local resolved
   local relative_path
-  local deployed_relative_path
 
   while IFS=$'\t' read -r package relative_path; do
-    deployed_relative_path="$(decode_stow_path "$relative_path")"
-    path="$HOME/$deployed_relative_path"
+    path="$HOME/$relative_path"
 
-    [[ -e "$path" ]] || fail "$path does not exist"
+    [[ -e "$path" ]] || { ls -lah "$(dirname "$path")" ; fail "$path does not exist" ; }
     resolved="$(readlink -f "$path")"
 
     case "$expected_kind" in
@@ -170,16 +148,6 @@ assert_home_manager_profile_state() {
   [[ -L "$XDG_STATE_HOME/nix/profiles/home-manager" ]] || fail "Home Manager profile symlink was not created in XDG state"
 }
 
-assert_git_config_template_dir() {
-  local template_dir
-
-  template_dir="$(git config --global init.templateDir)"
-
-  if [[ "$template_dir" != "$XDG_CONFIG_HOME/git/template" && "$template_dir" != "~/.config/git/template" ]]; then
-    fail "git init.templateDir was not configured correctly: $template_dir"
-  fi
-}
-
 assert_git_config_local_override() {
   [[ "$(git config --global include.path)" == "~/.config/git/config.local" ]] || fail "git include.path was not configured correctly"
 }
@@ -195,22 +163,9 @@ assert_git_init_uses_repos() {
 
   rm -rf "$repo_path"
   home_manager_path="$(readlink -f "$XDG_STATE_HOME/nix/profiles/home-manager/home-path")"
-  PATH="$home_manager_path/bin:$PATH" "$HOME/.local/bin/git" init "$repo_path" >/dev/null
+  PATH="$home_manager_path/bin:$PATH" repos init "$repo_path" >/dev/null
 
   [[ -f "$gitignore_path" ]] || fail "git init did not apply the repos template"
-}
-
-assert_git_init_materializes_template_files() {
-  local repo_path="$TEST_ROOT/materialized-template-repo"
-  local hook_path="$repo_path/.git/hooks/pre-commit.sample"
-  local system_git
-
-  rm -rf "$repo_path"
-  system_git="$(command -v git)"
-  "$system_git" init "$repo_path" >/dev/null
-
-  [[ -e "$hook_path" ]] || fail "git init did not copy the expected hook template"
-  [[ ! -L "$hook_path" ]] || fail "git init copied a symlinked hook template instead of materializing it"
 }
 
 assert_idempotent_script() {
@@ -320,16 +275,14 @@ run_script_mode() {
   seed_checkout
   ensure_stow
   log "Testing native symlink deployment"
-  PATH="$STOW_BIN_DIR:$PATH" bash "$HOME/terminalenv/mksymlinks.sh"
+  PATH="$STOW_BIN_DIR:$PATH" bash "$HOME/terminalenv/mksymlinks.sh" repos
   assert_idempotent_script
   assert_links runtime home opencode
   assert_no_dangling_symlinks
   assert_core_files_exist
   assert_profile_works
-  assert_git_config_template_dir
   assert_git_config_local_override
   assert_git_diff_external
-  assert_git_init_materializes_template_files
   assert_bash_works
   [[ ! -e "$XDG_STATE_HOME/nix/profiles/home-manager" ]] || fail "Script mode unexpectedly created a Home Manager profile"
 }
@@ -355,13 +308,9 @@ run_home_manager_mode() {
   assert_profile_works
   assert_bash_works
   assert_home_manager_profile_state
-  assert_git_config_template_dir
   assert_git_config_local_override
   assert_git_diff_external
   assert_git_init_uses_repos
-  if [[ "$mode" == "out-of-store" ]]; then
-    assert_git_init_materializes_template_files
-  fi
 }
 
 run_external_flake_module_mode() {
@@ -389,7 +338,6 @@ run_external_flake_module_mode() {
   assert_profile_works
   assert_bash_works
   assert_home_manager_profile_state
-  assert_git_config_template_dir
   assert_git_config_local_override
   assert_git_diff_external
   assert_git_init_uses_repos

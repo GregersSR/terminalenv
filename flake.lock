@@ -7,17 +7,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1775390066,
-        "narHash": "sha256-BGMPXfXIxa3yyDd1UmjKBeh/nEXDlEyAP/6WnXPtwGA=",
+        "lastModified": 1775734995,
+        "narHash": "sha256-elxLoFOrE2fd9FYjv9A0CtFO1I5qPbmqAdz9FpJ7v8I=",
         "owner": "GregersSR",
         "repo": "cli-tools",
-        "rev": "6097dd241e5203686e173477c22d3129fdfa7cad",
+        "rev": "1e046e87d51f9252bed74ca801ac6718e252b323",
         "type": "github"
       },
       "original": {
         "owner": "GregersSR",
         "repo": "cli-tools",
-        "rev": "6097dd241e5203686e173477c22d3129fdfa7cad",
         "type": "github"
       }
     },

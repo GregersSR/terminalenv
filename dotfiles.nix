@@ -14,27 +14,15 @@ let
       inherit path;
     }) (lib.filesystem.listFilesRecursive pkg.root)
   ) selectedPackages;
-  decodeStowSegment = segment:
-    if lib.hasPrefix "dot-" segment then
-      ".${lib.removePrefix "dot-" segment}"
-    else
-      segment;
-  decodeStowPath = relativePath:
-    lib.concatStringsSep "/" (map decodeStowSegment (lib.splitString "/" relativePath));
-  stowFlags = pkg:
-    if pkg.name == "repos" then
-      "--dotfiles --no-folding "
-    else
-      "";
   unstowCommands = lib.concatMapStringsSep "\n" (pkg:
-    ''${pkgs.stow}/bin/stow ${stowFlags pkg}--dir ${repoRootArg} --target "$HOME" --delete ${lib.escapeShellArg pkg.name}''
+    ''${pkgs.stow}/bin/stow --dir ${repoRootArg} --target "$HOME" --delete ${lib.escapeShellArg pkg.name}''
   ) selectedPackages;
   restowCommands = lib.concatMapStringsSep "\n" (pkg:
-    ''${pkgs.stow}/bin/stow ${stowFlags pkg}--dir ${repoRootArg} --target "$HOME" --restow ${lib.escapeShellArg pkg.name}''
+    ''${pkgs.stow}/bin/stow --dir ${repoRootArg} --target "$HOME" --restow ${lib.escapeShellArg pkg.name}''
   ) selectedPackages;
 
   storeManagedFiles = lib.listToAttrs (map (file: {
-    name = decodeStowPath file.relativePath;
+    name = file.relativePath;
     value = {
       source = file.path;
     };
