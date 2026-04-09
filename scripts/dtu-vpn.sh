@@ -4,13 +4,13 @@ set -e
 
 if [[ "$EUID" != 0 ]]
 then
-	echo "Must be run as root." >&2
-	exit 1
+    echo "Must be run as root." >&2
+    exit 1
 fi
 
 cleanup () {
-	ip route del default dev tun-dtu
-	kill "$(<$PID_FILE)" || kill -9 "$(<$PID_FILE)" || true
+    ip route del default dev tun-dtu
+    kill "$(<$PID_FILE)" || kill -9 "$(<$PID_FILE)" || true
 }
 
 PID_FILE="$(mktemp)"
@@ -18,8 +18,8 @@ openconnect --background --pid-file="$PID_FILE" --interface=tun-dtu --os=win --u
 trap cleanup EXIT
 while [ ! -d /proc/sys/net/ipv6/conf/tun-dtu ]
 do
-	echo "Waiting for tun-dtu to come up . . ."
-	sleep 1
+    echo "Waiting for tun-dtu to come up . . ."
+    sleep 1
 done
 sysctl -w net.ipv6.conf.tun-dtu.disable_ipv6=1
 ip route add default dev tun-dtu
