@@ -102,3 +102,18 @@ function git_main_branch() {
   echo master
   return 1
 }
+
+function git_current_branch() {
+  local ref
+  ref=$(command git symbolic-ref --short HEAD 2>/dev/null)
+  if [[ -n $ref ]]; then
+    echo "$ref"
+    return 0
+  fi
+  ref=$(command git rev-parse --short HEAD 2>/dev/null)
+  if [[ -n $ref ]]; then
+    echo "$ref"
+    return 0
+  fi
+  return 1
+}
