@@ -218,5 +218,8 @@
         "editor.wordWrap": "on",
         "editor.wrappingIndent": "indent"
     },
-    "editor.rulers": [80, 120]
+    "editor.rulers": [
+        80,
+        120
+    ]
 }

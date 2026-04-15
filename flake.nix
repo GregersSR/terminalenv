@@ -18,12 +18,12 @@
     };
   };
 
-  outputs = { cli-tools, nixpkgs, home-manager, ... }:
+  outputs = { nixpkgs, home-manager, cli-tools, mypkgs, ... }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
       repoPkgs = import ./packages pkgs;
-      ownPkgs = cli-tools.packages.${system} // repoPkgs;
+      ownPkgs = cli-tools.packages.${system} // repoPkgs // mypkgs.packages.${system};
       extraSpecialArgs = {
         inherit ownPkgs;
         nixpkgsFlake = nixpkgs;
