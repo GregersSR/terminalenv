@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ownPkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 {
   nix = {
@@ -24,7 +24,6 @@
     pandoc
     fd
     ripgrep
-    ownPkgs.repos
     stow
   ];
 

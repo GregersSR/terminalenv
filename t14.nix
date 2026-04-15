@@ -1,4 +1,4 @@
-{ config, pkgs, ownPkgs, ... }:
+ownPkgs: { config, pkgs, ... }:
 
 {
   home = {
@@ -8,6 +8,7 @@
     packages = [
         ownPkgs.starship
         ownPkgs.pythonPackages.zotero-mcp-server
+        ownPkgs.repos
     ];
   };
 
