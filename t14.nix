@@ -1,4 +1,4 @@
-{ config, pkgs, ownPkgs, ... }:
+ownPkgs: { config, pkgs, ... }:
 
 {
   home = {
