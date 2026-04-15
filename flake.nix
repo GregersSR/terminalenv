@@ -23,7 +23,7 @@
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
       repoPkgs = import ./packages pkgs;
-      ownPkgs = cli-tools.packages.${system} // repoPkgs // mypkgs.packages.${system};
+      ownPkgs = cli-tools.packages.${system} // mypkgs.packages.${system} // repoPkgs;
       nixpkgsPin = import ./nixpkgs-registry.nix nixpkgs;
       modules = {
         dotfiles = ./dotfiles.nix;
