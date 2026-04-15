@@ -7,6 +7,7 @@
     stateVersion = "24.11";
     packages = [
         ownPkgs.starship
+        ownPkgs.repos
     ];
   };
 
