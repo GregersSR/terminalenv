@@ -45,6 +45,8 @@
         telescope-nvim
         neogit
       ];
+      withRuby = false;
+      withPython3 = false;
     };
 
     bat.enable = true;
