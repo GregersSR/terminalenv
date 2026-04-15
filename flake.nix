@@ -22,12 +22,11 @@
       ownPkgs = cli-tools.packages.${system} // repoPkgs;
       extraSpecialArgs = {
         inherit ownPkgs;
-        nixpkgsFlake = nixpkgs;
       };
       modules = {
         dotfiles = ./dotfiles.nix;
         common = ./common.nix;
-        nixpkgs-registry = ./nixpkgs-registry.nix;
+        nixpkgs-registry = ./nixpkgs-registry.nix nixpkgs;
         t14 = ./t14.nix;
       };
       deploymentTests = import ./tests/deployments.nix {
