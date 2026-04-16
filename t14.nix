@@ -9,6 +9,8 @@ ownPkgs: { config, pkgs, ... }:
         ownPkgs.starship
         ownPkgs.pythonPackages.zotero-mcp-server
         ownPkgs.repos
+        pkgs.nodejs-slim
+        pkgs.nodejs-slim.npm
     ];
   };
 
