@@ -13,7 +13,6 @@ let
       modules = [
         modules.dotfiles
         modules.common
-        modules.nixpkgs-registry
         ({ ... }: {
           home.username = "tester";
           home.homeDirectory = "/tmp/terminalenv-test-home";

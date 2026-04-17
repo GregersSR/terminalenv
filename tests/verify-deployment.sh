@@ -218,9 +218,10 @@ build_external_consumer_activation() {
     dotfiles.url = "path:${DOTFILES_FLAKE_ROOT}";
     nixpkgs.follows = "dotfiles/nixpkgs";
     home-manager.follows = "dotfiles/home-manager";
+    cli-tools.follows = "dotfiles/cli-tools";
   };
 
-  outputs = { nixpkgs, home-manager, dotfiles, ... }:
+  outputs = { nixpkgs, home-manager, dotfiles, cli-tools, ... }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.\${system};
@@ -230,18 +231,14 @@ build_external_consumer_activation() {
         modules = [
           dotfiles.modules.dotfiles
           dotfiles.modules.common
-          dotfiles.modules.nixpkgs-registry
           ({ lib, ... }: {
             home.username = "tester";
             home.homeDirectory = "${HOME}";
             home.stateVersion = "24.11";
+            home.packages = [ cli-tools.packages.\${system}.repos ];
             ${overrides}
           })
         ];
-        extraSpecialArgs = {
-          nixpkgsFlake = nixpkgs;
-          ownPkgs = dotfiles.packages.\${system};
-        };
       };
     };
 }

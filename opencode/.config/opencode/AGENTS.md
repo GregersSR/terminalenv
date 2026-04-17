@@ -9,4 +9,5 @@
 
 ## Code Style Guidelines
 - Commit changes to checkpoint your work and deliver logical change bundles. NEVER push.
-
+- Avoid silent errors when possible.
+- Instead of omitting information or functionality silently based on what's available, it is usually better to have the consumer (user or caller) specify what they need and throw an error if it cannot be satisfied.

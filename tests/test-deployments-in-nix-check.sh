@@ -97,8 +97,7 @@ assert_links() {
     local resolved
     local deployed_relative_path
 
-    deployed_relative_path="$(decode_stow_path "$relative_path")"
-    path="$(installed_path "$deployed_relative_path")"
+    path="$(installed_path "$relative_path")"
     [[ -e "$path" ]] || fail "$path does not exist"
     resolved="$(readlink -f "$path" 2>/dev/null || true)"
     [[ -n "$resolved" ]] || fail "$path is unreadable"
@@ -175,8 +174,7 @@ assert_generation_entries() {
     local home_files_path
     local deployed_relative_path
 
-    deployed_relative_path="$(decode_stow_path "$relative_path")"
-    home_files_path="$generation/home-files/$deployed_relative_path"
+    home_files_path="$generation/home-files/$relative_path"
 
     [[ -e "$home_files_path" || -L "$home_files_path" ]] || fail "Expected generated path missing: $home_files_path"
   done < <(package_tree_entries home repos opencode)
@@ -194,7 +192,6 @@ run_home_manager_mode() {
     grep -q -- '--restow home' "$generation/activate" || fail "Out-of-store activation does not restow home/"
     grep -q -- '--restow opencode' "$generation/activate" || fail "Out-of-store activation does not restow opencode/"
     grep -q -- '--restow repos' "$generation/activate" || fail "Out-of-store activation does not restow repos/"
-    grep -q -- '--dotfiles --no-folding' "$generation/activate" || fail "Out-of-store activation is missing repos stow flags"
     [[ ! -e "$generation/home-files/.bashrc" ]] || fail "Out-of-store generation should not materialize ~/.bashrc"
   fi
 

@@ -22,6 +22,7 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
+      lib = pkgs.lib;
       repoPkgs = import ./packages pkgs;
       ownPkgs = cli-tools.packages.${system} // mypkgs.packages.${system} // repoPkgs;
       nixpkgsPin = import ./nixpkgs-registry.nix nixpkgs;
@@ -52,7 +53,7 @@
         # to pass through arguments to home.nix
       };
       apps.${system}.test-deployments = deploymentTests.test;
-      packages.${system} = ownPkgs;
+      packages.${system} = lib.removeAttrs ownPkgs [ "pythonPackages" ];
       checks.${system}.deployment-tests = deploymentTests.check;
       inherit modules;
     };
