@@ -197,6 +197,7 @@ run_home_manager_mode() {
 
   [[ -e "$generation/home-files/.config/nvim/hm-generated.lua" ]] || fail "Missing generated Home Manager nvim helper"
   [[ ! -e "$generation/home-files/.config/nvim/init.lua" ]] || fail "Unexpected generated Home Manager init.lua"
+  [[ -e "$generation/home-files/.config/fish/config.fish" ]] || fail "Missing generated fish config"
 }
 
 run_script_mode
