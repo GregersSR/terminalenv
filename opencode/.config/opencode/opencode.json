@@ -1,0 +1,21 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "browser": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "agent-browser-protocol",
+        "--mcp",
+        "--verbose",
+        "--allow-system-inputs"
+      ],
+      "enabled": false,
+      "environment": {
+        "ABP_ARGS": "--no-sandbox"
+      },
+      "timeout": 30000
+    }
+  }
+}
