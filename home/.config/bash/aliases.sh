@@ -1,59 +1,19 @@
-# Navigation
+# Bash-specific navigation alias (shared file can't unify `-` alias syntax)
 alias -- '-'='cd -'
-alias '...'='../..'
-alias '....'='../../..'
-alias '.....'='../../../..'
-alias '......'='../../../../..'
-alias 1='cd -1'
-alias 2='cd -2'
-alias 3='cd -3'
-alias 4='cd -4'
-alias 5='cd -5'
-alias 6='cd -6'
-alias 7='cd -7'
-alias 8='cd -8'
-alias 9='cd -9'
-alias _='sudo '
 
-# grep
+# Source shared aliases
+shared_aliases="$(cd "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../shell" >/dev/null 2>&1 && pwd)/aliases"
+if [ -f "$shared_aliases" ]; then
+  source "$shared_aliases"
+else
+  echo "Warning: shared aliases not found at $shared_aliases" >&2
+fi
+unset shared_aliases
+
+# Bash-specific aliases
+alias _='sudo '
 alias grep='grep --color=auto --exclude-dir={.git,.idea}'
 alias zgrep='zgrep --color=auto'
-
-# TODO: define git_develop_branch, git_main_branch, git_current_branch
-
-# Git
-alias g=git
-alias ga='git add'
-alias gaa='git add --all'
-alias gc='git commit --verbose'
-alias 'gc!'='git commit --verbose --amend'
-alias gcB='git checkout -B'
-alias gca='git commit --verbose --all'
-alias gcd='git checkout $(git_develop_branch)'
-alias gcm='git checkout $(git_main_branch)'
-# gd uses Git's configured external diff; gdp is plain diff with --no-ext-diff.
-alias gd='git diff'
-alias gdp='git diff --no-ext-diff'
-alias gds='git diff --staged'
-alias gf='git fetch'
-alias gl='git pull'
-alias glg='git log --stat'
-alias glgg='git log --graph'
-alias glgga='git log --graph --decorate --all'
-alias glog='git log --oneline --decorate --graph'
-alias gm='git merge'
-alias gp='git push'
-alias gpf='git push --force-with-lease --force-if-includes'
-alias gpsup='git push --set-upstream origin $(git_current_branch)'
-alias gst='git status'
-alias gsta='git stash push'
-alias gstd='git stash drop'
-alias gstl='git stash list'
-alias gstp='git stash pop'
-alias gsw='git switch'
-alias gswc='git switch --create'
-alias gswd='git switch $(git_develop_branch)'
-alias gswm='git switch $(git_main_branch)'
 
 if declare -F __git_complete >/dev/null 2>&1; then
   __git_complete ga _git_add
@@ -88,27 +48,19 @@ if declare -F __git_complete >/dev/null 2>&1; then
   __git_complete gswm _git_switch
 fi
 
-# ls
+# ls with fallback
 if cmd_exists eza; then
-	alias ls='eza '
-	alias l='eza -lgh '
-	alias la='eza -a '
-	alias ll='eza -lgAh '
-	alias lt='eza --tree '
+  alias ls='eza '
+  alias l='eza -lgh '
+  alias la='eza -a '
+  alias ll='eza -lgAh '
+  alias lt='eza --tree '
 else
-	alias ls='ls --color=auto '
-	alias l='ls -lh '
-	alias la='ls -a '
-	alias ll='ls -lah '
-	alias lt='tree '
+  alias ls='ls --color=auto '
+  alias l='ls -lh '
+  alias la='ls -a '
+  alias ll='ls -lah '
+  alias lt='tree '
 fi
 
-if cmd_exists home-manager; then
-	alias hms='home-manager switch --flake ~/terminalenv#gsr'
-fi
-
-# Other
-alias md='mkdir -p'
-
-alias sum='paste -sd+ | bc'
 alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
