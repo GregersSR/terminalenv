@@ -3,65 +3,66 @@
 let
   cfg = config.dotfiles.links;
   packageRoot = name: ./. + "/${name}";
-  selectedPackages = map (name: {
-    inherit name;
-    root = packageRoot name;
-  }) cfg.packages;
-  selectedPackageFiles = lib.concatMap (pkg:
-    map (path: {
-      inherit (pkg) name;
-      relativePath = lib.removePrefix "${toString pkg.root}/" (toString path);
-      inherit path;
-    }) (lib.filesystem.listFilesRecursive pkg.root)
-  ) selectedPackages;
-  unstowCommands = lib.concatMapStringsSep "\n" (pkg:
-    ''${pkgs.stow}/bin/stow --dir ${repoRootArg} --target "$HOME" --delete ${lib.escapeShellArg pkg.name}''
-  ) selectedPackages;
-  restowCommands = lib.concatMapStringsSep "\n" (pkg:
-    ''${pkgs.stow}/bin/stow --dir ${repoRootArg} --target "$HOME" --restow ${lib.escapeShellArg pkg.name}''
-  ) selectedPackages;
+  repoRootArg = lib.escapeShellArg cfg.repoRoot;
+
+  storePackageFiles =
+    let
+      selected = map (name: {
+        inherit name;
+        root = packageRoot name;
+      }) cfg.storePackages;
+    in
+      lib.concatMap (pkg:
+        map (path: {
+          relativePath = lib.removePrefix "${toString pkg.root}/" (toString path);
+          inherit path;
+        }) (lib.filesystem.listFilesRecursive pkg.root)
+      ) selected;
 
   storeManagedFiles = lib.listToAttrs (map (file: {
     name = file.relativePath;
-    value = {
-      source = file.path;
-    };
-  }) selectedPackageFiles);
+    value = { source = file.path; };
+  }) storePackageFiles);
 
-  repoRootArg = lib.escapeShellArg cfg.repoRoot;
-  repoPackageCheck = lib.concatMapStringsSep "\n" (pkg: ''
-    if [ ! -d ${lib.escapeShellArg "${cfg.repoRoot}/${pkg.name}"} ]; then
-      errorEcho "Dotfiles package directory not found: ${cfg.repoRoot}/${pkg.name}"
+  unstowCommands = lib.concatMapStringsSep "\n" (name:
+    ''${pkgs.stow}/bin/stow --dir ${repoRootArg} --target "$HOME" --delete ${lib.escapeShellArg name}''
+  ) cfg.storePackages;
+
+  outOfStorePackageCheck = lib.concatMapStringsSep "\n" (name: ''
+    if [ ! -d ${lib.escapeShellArg "${cfg.repoRoot}/${name}"} ]; then
+      errorEcho "Dotfiles package directory not found: ${cfg.repoRoot}/${name}"
       exit 1
     fi
-  '') selectedPackages;
+  '') cfg.outOfStorePackages;
+
+  restowCommands = lib.concatMapStringsSep "\n" (name:
+    ''${pkgs.stow}/bin/stow --dir ${repoRootArg} --target "$HOME" --restow ${lib.escapeShellArg name}''
+  ) cfg.outOfStorePackages;
 in {
   options.dotfiles.links = {
     enable = lib.mkEnableOption "dotfiles deployment";
 
-    mode = lib.mkOption {
-      type = lib.types.enum [ "store" "out-of-store" ];
-      default = "store";
-      description = ''
-        Whether Home Manager should materialize files from the dotfiles tree in
-        the Nix store or restow them from a local checkout.
-      '';
-    };
-
     repoRoot = lib.mkOption {
       type = lib.types.str;
       default = "${config.home.homeDirectory}/terminalenv";
-      example = "${config.home.homeDirectory}/src/dotfiles";
       description = ''
-        Checkout path used when link mode is `out-of-store`.
+        Path to the local checkout, used for out-of-store packages.
       '';
     };
 
-    packages = lib.mkOption {
+    storePackages = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [ "home" "repos" "opencode" ];
       description = ''
-        Top-level stow packages to deploy.
+        Stow packages deployed via home.file from the Nix store.
+      '';
+    };
+
+    outOfStorePackages = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = ''
+        Stow packages deployed via stow from the local checkout at repoRoot.
       '';
     };
   };
@@ -69,9 +70,8 @@ in {
   config = lib.mkMerge [
     {
       dotfiles.links.enable = lib.mkDefault true;
-      dotfiles.links.mode = lib.mkDefault "out-of-store";
     }
-    (lib.mkIf (cfg.enable && cfg.mode == "store") {
+    (lib.mkIf (cfg.enable && cfg.storePackages != [ ]) {
       home.file = storeManagedFiles;
 
       home.activation.dotfilesUnstow = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
@@ -80,14 +80,14 @@ in {
         fi
       '';
     })
-    (lib.mkIf (cfg.enable && cfg.mode == "out-of-store") {
+    (lib.mkIf (cfg.enable && cfg.outOfStorePackages != [ ]) {
       home.activation.dotfilesRestow = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
         if [ ! -d ${repoRootArg} ]; then
           errorEcho "Out-of-store dotfiles mode requires a local checkout at ${cfg.repoRoot}."
           exit 1
         fi
 
-        ${repoPackageCheck}
+        ${outOfStorePackageCheck}
 
         ${restowCommands}
       '';
