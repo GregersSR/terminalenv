@@ -24,9 +24,11 @@ let
     value = { source = file.path; };
   }) storePackageFiles);
 
-  unstowCommands = lib.concatMapStringsSep "\n" (name:
-    ''${pkgs.stow}/bin/stow --dir ${repoRootArg} --target "$HOME" --delete ${lib.escapeShellArg name}''
-  ) cfg.storePackages;
+  unstowCommands = lib.concatMapStringsSep "\n" (name: ''
+    if [ -d ${lib.escapeShellArg "${cfg.repoRoot}/${name}"} ]; then
+      ${pkgs.stow}/bin/stow --dir ${repoRootArg} --target "$HOME" --delete ${lib.escapeShellArg name}
+    fi
+  '') cfg.storePackages;
 
   outOfStorePackageCheck = lib.concatMapStringsSep "\n" (name: ''
     if [ ! -d ${lib.escapeShellArg "${cfg.repoRoot}/${name}"} ]; then
