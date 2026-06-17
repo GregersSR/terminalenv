@@ -3,7 +3,12 @@
 let
   repoRoot = ../.;
 
+  allPackages = [ "home" "repos" "opencode" ];
+
   mkCheckActivation = mode:
+    let
+      isStore = mode == "store";
+    in
     (homeManager.lib.homeManagerConfiguration {
       inherit pkgs;
       extraSpecialArgs = {
@@ -13,14 +18,14 @@ let
       modules = [
         modules.dotfiles
         modules.common
-        ({ ... }: {
+        ({ lib, ... }: {
           home.username = "tester";
           home.homeDirectory = "/tmp/terminalenv-test-home";
           home.stateVersion = "24.11";
 
-          dotfiles.links.mode = pkgs.lib.mkForce mode;
-        } // pkgs.lib.optionalAttrs (mode == "out-of-store") {
-          dotfiles.links.repoRoot = pkgs.lib.mkForce (builtins.toString repoRoot);
+          dotfiles.links.storePackages = lib.mkForce (if isStore then allPackages else [ ]);
+          dotfiles.links.outOfStorePackages = lib.mkForce (if isStore then [ ] else allPackages);
+          dotfiles.links.repoRoot = lib.mkForce (builtins.toString repoRoot);
         })
       ];
     }).activationPackage;
