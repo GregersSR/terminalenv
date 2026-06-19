@@ -200,12 +200,13 @@ build_external_consumer_activation() {
   rm -rf "$consumer_root"
   mkdir -p "$consumer_root"
 
+  local allPackages='[ "home" "repos" "opencode" ]'
   case "$mode" in
     out-of-store)
-      overrides='dotfiles.links.mode = lib.mkForce "out-of-store";'
+      overrides="dotfiles.links.storePackages = lib.mkForce [ ]; dotfiles.links.outOfStorePackages = lib.mkForce ${allPackages};"
       ;;
     store)
-      overrides='dotfiles.links.mode = lib.mkForce "store";'
+      overrides="dotfiles.links.storePackages = lib.mkForce ${allPackages}; dotfiles.links.outOfStorePackages = lib.mkForce [ ];"
       ;;
     *)
       fail "Unknown external consumer mode: $mode"
