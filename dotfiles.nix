@@ -2,14 +2,15 @@
 
 let
   cfg = config.dotfiles.links;
-  packageRoot = name: ./. + "/${name}";
+  stowRoot = name: ./. + "/dotpkgs/${name}";
   repoRootArg = lib.escapeShellArg cfg.repoRoot;
+  stowDirArg = "${repoRootArg}/dotpkgs";
 
   storePackagesFiles =
     let
       selected = map (name: {
         inherit name;
-        root = packageRoot name;
+        root = stowRoot name;
       }) cfg.storePackages;
     in
       lib.concatMap (pkg:
@@ -25,21 +26,24 @@ let
   }) storePackagesFiles);
 
   unstowAll = lib.concatMapStringsSep "\n" (name: ''
-    if [ -d ${repoRootArg}/${lib.escapeShellArg name} ]; then
-      ${pkgs.stow}/bin/stow --dir ${repoRootArg} --target "$HOME" --delete ${lib.escapeShellArg name} 2>/dev/null || true
+    if [ -d ${stowDirArg}/${lib.escapeShellArg name} ]; then
+      ${pkgs.stow}/bin/stow --dir ${stowDirArg} --target "$HOME" --delete ${lib.escapeShellArg name} 2>/dev/null || true
     fi
   '') cfg.packages;
 
   outOfStoreChecks = lib.concatMapStringsSep "\n" (name: ''
-    if [ ! -d ${lib.escapeShellArg "${cfg.repoRoot}/${name}"} ]; then
-      errorEcho "Out-of-store dotfiles package not found: ${cfg.repoRoot}/${name}"
+    if [ ! -d ${stowDirArg}/${lib.escapeShellArg name} ]; then
+      errorEcho "Out-of-store dotfiles package not found: ${stowDirArg}/${name}"
       exit 1
     fi
   '') cfg.outOfStorePackages;
 
   restowOutOfStore = lib.concatMapStringsSep "\n" (name:
-    ''${pkgs.stow}/bin/stow --dir ${repoRootArg} --target "$HOME" --restow ${lib.escapeShellArg name}''
+    ''${pkgs.stow}/bin/stow --dir ${stowDirArg} --target "$HOME" --restow ${lib.escapeShellArg name}''
   ) cfg.outOfStorePackages;
+
+  dotpkgsEntries = builtins.readDir ./dotpkgs;
+  dotpkgsDirs = lib.attrNames (lib.filterAttrs (n: v: v == "directory") dotpkgsEntries);
 in {
   options.dotfiles.links = {
     enable = lib.mkEnableOption "dotfiles deployment";
@@ -55,21 +59,24 @@ in {
 
     packages = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ "home" "repos" "opencode" ];
+      default = dotpkgsDirs;
       description = ''
-        All known stow packages in this repository. Before deploying,
-        any symlink managed by stow for these packages is removed,
-        guaranteeing no leftovers when packages move between modes.
-        Must be a superset of both storePackages and outOfStorePackages.
+        All known stow packages in this repository. Defaults to the
+        subdirectories of dotpkgs/ inferred at evaluation time. Before
+        deploying, any symlink managed by stow for these packages is
+        removed, guaranteeing no leftovers when packages move between
+        modes. Must be a superset of both storePackages and
+        outOfStorePackages.
       '';
     };
 
     storePackages = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ "home" "repos" "opencode" ];
+      default = dotpkgsDirs;
       description = ''
         Subset of packages deployed via home.file from the Nix store
-        (absolute symlinks, managed by Home Manager).
+        (absolute symlinks, managed by Home Manager). Defaults to all
+        packages in dotpkgs/.
       '';
     };
 
@@ -109,7 +116,7 @@ in {
 
     # Before HM creates links: drop all stow-managed symlinks for every known
     # package. This cleans up prior out-of-store deployments, including
-    # packages that have been removed entirely from both lists.
+    # packages that have been removed entirely from the dotpkgs/ directory.
     (lib.mkIf (cfg.enable && cfg.packages != [ ]) {
       home.activation.dotfilesUnstow = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
         ${unstowAll}

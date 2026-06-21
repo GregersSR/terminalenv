@@ -27,7 +27,7 @@ package_tree_entries() {
 
   for package in "$@"; do
     (
-      cd "$REPO_ROOT/$package"
+      cd "$REPO_ROOT/dotpkgs/$package"
       find . -type f -printf '%P\n' | sort
     ) | while IFS= read -r relative_path; do
       printf '%s\t%s\n' "$package" "$relative_path"
@@ -109,7 +109,7 @@ assert_links() {
 
     case "$expected_kind" in
       runtime)
-        [[ "$resolved" == "$HOME/terminalenv/$package/$relative_path" ]] || fail "$path resolved to $resolved, expected $HOME/terminalenv/$package/$relative_path"
+        [[ "$resolved" == "$HOME/terminalenv/dotpkgs/$package/$relative_path" ]] || fail "$path resolved to $resolved, expected $HOME/terminalenv/dotpkgs/$package/$relative_path"
         ;;
       store)
         [[ "$resolved" == /nix/store/* ]] || fail "$path resolved to $resolved, expected /nix/store/*"

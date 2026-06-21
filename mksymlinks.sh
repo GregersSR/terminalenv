@@ -31,24 +31,27 @@ fi
 
 REPO_ROOT="$(dirname "$(resolve_path "${BASH_SOURCE[0]}")")"
 
-if [[ ! -d "$REPO_ROOT/home" ]]; then
-    fail "dotfiles package directory not found: $REPO_ROOT/home"
+if [[ ! -d "$REPO_ROOT/dotpkgs" ]]; then
+    fail "dotfiles packages directory not found: $REPO_ROOT/dotpkgs"
 fi
 
-packages=(home opencode)
+packages=()
+for pkg_dir in "$REPO_ROOT/dotpkgs"/*/; do
+    packages+=("$(basename "$pkg_dir")")
+done
 
 if [[ "$#" -gt 0 ]]; then
     packages+=("$@")
 fi
 
 for package in "${packages[@]}"; do
-    if [[ ! -d "$REPO_ROOT/$package" ]]; then
-        fail "dotfiles package directory not found: $REPO_ROOT/$package"
+    if [[ ! -d "$REPO_ROOT/dotpkgs/$package" ]]; then
+        fail "dotfiles package directory not found: $REPO_ROOT/dotpkgs/$package"
     fi
 done
 
 for package in "${packages[@]}"; do
-    package_args=(--dir "$REPO_ROOT" --target "$HOME" --restow "$package")
+    package_args=(--dir "$REPO_ROOT/dotpkgs" --target "$HOME" --restow "$package")
 
     stow "${package_args[@]}"
 done
