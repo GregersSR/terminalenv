@@ -4,7 +4,7 @@
 - Keep this file up to date when future sessions learn important repo-specific behavior, but only add guidance an agent would likely miss.
 - This is a dotfiles/Home Manager flake, not an app. `home/`, `opencode/`, and `repos/` are Stow package roots laid out as `$HOME` contents.
 - `mksymlinks.sh` is the native Stow entrypoint. With no args it restows `home` and `opencode`; extra args are appended, so use `bash mksymlinks.sh repos` to include repo tooling.
-- `dotfiles.nix` owns deployment mechanics. Default Home Manager mode is `out-of-store`, default packages are `home`, `repos`, and `opencode`.
+- `dotfiles.nix` owns deployment mechanics. `dotfiles.links.packages` lists all known stow packages (default `home`, `repos`, `opencode`). `storePackages` and `outOfStorePackages` are subsets, and assertions enforce this. Before `linkGeneration`, stow symlinks for all known packages are silently cleaned up, so packages can move freely between modes (or be removed) without leftovers.
 - `common.nix` is shared Home Manager config; `t14.nix` is the `gsr` machine/user layer using external `cli-tools`/`mypkgs` packages.
 - Fish source snippets live under `home/.config/fish/` and are wired into Home Manager from `common.nix`.
 

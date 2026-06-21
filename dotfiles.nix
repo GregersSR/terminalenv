@@ -5,7 +5,7 @@ let
   packageRoot = name: ./. + "/${name}";
   repoRootArg = lib.escapeShellArg cfg.repoRoot;
 
-  storePackageFiles =
+  storePackagesFiles =
     let
       selected = map (name: {
         inherit name;
@@ -22,22 +22,22 @@ let
   storeManagedFiles = lib.listToAttrs (map (file: {
     name = file.relativePath;
     value = { source = file.path; };
-  }) storePackageFiles);
+  }) storePackagesFiles);
 
-  unstowCommands = lib.concatMapStringsSep "\n" (name: ''
-    if [ -d ${lib.escapeShellArg "${cfg.repoRoot}/${name}"} ]; then
-      ${pkgs.stow}/bin/stow --dir ${repoRootArg} --target "$HOME" --delete ${lib.escapeShellArg name}
+  unstowAll = lib.concatMapStringsSep "\n" (name: ''
+    if [ -d ${repoRootArg}/${lib.escapeShellArg name} ]; then
+      ${pkgs.stow}/bin/stow --dir ${repoRootArg} --target "$HOME" --delete ${lib.escapeShellArg name} 2>/dev/null || true
     fi
-  '') cfg.storePackages;
+  '') cfg.packages;
 
-  outOfStorePackageCheck = lib.concatMapStringsSep "\n" (name: ''
+  outOfStoreChecks = lib.concatMapStringsSep "\n" (name: ''
     if [ ! -d ${lib.escapeShellArg "${cfg.repoRoot}/${name}"} ]; then
-      errorEcho "Dotfiles package directory not found: ${cfg.repoRoot}/${name}"
+      errorEcho "Out-of-store dotfiles package not found: ${cfg.repoRoot}/${name}"
       exit 1
     fi
   '') cfg.outOfStorePackages;
 
-  restowCommands = lib.concatMapStringsSep "\n" (name:
+  restowOutOfStore = lib.concatMapStringsSep "\n" (name:
     ''${pkgs.stow}/bin/stow --dir ${repoRootArg} --target "$HOME" --restow ${lib.escapeShellArg name}''
   ) cfg.outOfStorePackages;
 in {
@@ -48,7 +48,19 @@ in {
       type = lib.types.str;
       default = "${config.home.homeDirectory}/terminalenv";
       description = ''
-        Path to the local checkout, used for out-of-store packages.
+        Path to the local checkout. Used for out-of-store packages and
+        for unstowing stale symlinks before deploying store packages.
+      '';
+    };
+
+    packages = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ "home" "repos" "opencode" ];
+      description = ''
+        All known stow packages in this repository. Before deploying,
+        any symlink managed by stow for these packages is removed,
+        guaranteeing no leftovers when packages move between modes.
+        Must be a superset of both storePackages and outOfStorePackages.
       '';
     };
 
@@ -56,7 +68,8 @@ in {
       type = lib.types.listOf lib.types.str;
       default = [ "home" "repos" "opencode" ];
       description = ''
-        Stow packages deployed via home.file from the Nix store.
+        Subset of packages deployed via home.file from the Nix store
+        (absolute symlinks, managed by Home Manager).
       '';
     };
 
@@ -64,7 +77,8 @@ in {
       type = lib.types.listOf lib.types.str;
       default = [ ];
       description = ''
-        Stow packages deployed via stow from the local checkout at repoRoot.
+        Subset of packages deployed via stow from the local repo checkout
+        (relative symlinks, managed by stow).
       '';
     };
   };
@@ -73,15 +87,36 @@ in {
     {
       dotfiles.links.enable = lib.mkDefault true;
     }
+
+    # Validate that storePackages and outOfStorePackages are subsets of packages
+    {
+      assertions = [
+        {
+          assertion = lib.all (p: lib.elem p cfg.packages) cfg.storePackages;
+          message = "dotfiles.links: every entry in storePackages must also be in packages";
+        }
+        {
+          assertion = lib.all (p: lib.elem p cfg.packages) cfg.outOfStorePackages;
+          message = "dotfiles.links: every entry in outOfStorePackages must also be in packages";
+        }
+      ];
+    }
+
+    # Deploy store packages via home.file (absolute Nix store symlinks)
     (lib.mkIf (cfg.enable && cfg.storePackages != [ ]) {
       home.file = storeManagedFiles;
+    })
 
+    # Before HM creates links: drop all stow-managed symlinks for every known
+    # package. This cleans up prior out-of-store deployments, including
+    # packages that have been removed entirely from both lists.
+    (lib.mkIf (cfg.enable && cfg.packages != [ ]) {
       home.activation.dotfilesUnstow = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
-        if [ -d ${repoRootArg} ]; then
-          ${unstowCommands}
-        fi
+        ${unstowAll}
       '';
     })
+
+    # After HM links: restow out-of-store packages from the local checkout
     (lib.mkIf (cfg.enable && cfg.outOfStorePackages != [ ]) {
       home.activation.dotfilesRestow = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
         if [ ! -d ${repoRootArg} ]; then
@@ -89,9 +124,9 @@ in {
           exit 1
         fi
 
-        ${outOfStorePackageCheck}
+        ${outOfStoreChecks}
 
-        ${restowCommands}
+        ${restowOutOfStore}
       '';
     })
   ];
