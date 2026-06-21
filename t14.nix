@@ -1,6 +1,10 @@
-ownPkgs: { config, pkgs, ... }:
+ownPkgs: { config, lib, pkgs, ... }:
 
 {
+  dotfiles.links = {
+    storePackages = [ ];
+    outOfStorePackages = [ "home" "repos" "aitools" ];
+  };
   home = {
     username = "gsr";
     homeDirectory = "/home/gsr";

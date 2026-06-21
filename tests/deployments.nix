@@ -3,7 +3,7 @@
 let
   repoRoot = ../.;
 
-  allPackages = [ "home" "repos" "opencode" ];
+  allPackages = [ "home" "repos" "aitools" ];
 
   mkCheckActivation = mode:
     let

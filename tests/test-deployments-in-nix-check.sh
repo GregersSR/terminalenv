@@ -161,7 +161,7 @@ run_script_mode() {
   seed_checkout
   bash "$TEST_HOME/terminalenv/mksymlinks.sh"
   bash "$TEST_HOME/terminalenv/mksymlinks.sh" >/dev/null
-  assert_links runtime home opencode
+  assert_links runtime home aitools
   assert_core_paths
   assert_profile_works
   assert_bash_works
@@ -177,7 +177,7 @@ assert_generation_entries() {
     home_files_path="$generation/home-files/$relative_path"
 
     [[ -e "$home_files_path" || -L "$home_files_path" ]] || fail "Expected generated path missing: $home_files_path"
-  done < <(package_tree_entries home repos opencode)
+  done < <(package_tree_entries home repos aitools)
 }
 
 run_home_manager_mode() {
@@ -190,7 +190,7 @@ run_home_manager_mode() {
   else
     [[ -f "$generation/activate" ]] || fail "Missing activation script for out-of-store mode"
     grep -q -- '--restow home' "$generation/activate" || fail "Out-of-store activation does not restow home/"
-    grep -q -- '--restow opencode' "$generation/activate" || fail "Out-of-store activation does not restow opencode/"
+    grep -q -- '--restow aitools' "$generation/activate" || fail "Out-of-store activation does not restow aitools/"
     grep -q -- '--restow repos' "$generation/activate" || fail "Out-of-store activation does not restow repos/"
     [[ ! -e "$generation/home-files/.bashrc" ]] || fail "Out-of-store generation should not materialize ~/.bashrc"
   fi

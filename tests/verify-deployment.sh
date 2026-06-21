@@ -200,7 +200,7 @@ build_external_consumer_activation() {
   rm -rf "$consumer_root"
   mkdir -p "$consumer_root"
 
-  local allPackages='[ "home" "repos" "opencode" ]'
+  local allPackages='[ "home" "repos" "aitools" ]'
   case "$mode" in
     out-of-store)
       overrides="dotfiles.links.storePackages = lib.mkForce [ ]; dotfiles.links.outOfStorePackages = lib.mkForce ${allPackages};"
@@ -275,7 +275,7 @@ run_script_mode() {
   log "Testing native symlink deployment"
   PATH="$STOW_BIN_DIR:$PATH" bash "$HOME/terminalenv/mksymlinks.sh" repos
   assert_idempotent_script
-  assert_links runtime home opencode
+  assert_links runtime home aitools
   assert_no_dangling_symlinks
   assert_core_files_exist
   assert_profile_works
@@ -299,7 +299,7 @@ run_home_manager_mode() {
   activation="$(build_activation "$mode")"
   "$activation/activate"
   assert_idempotent_activation "$activation"
-  assert_links "$expected_kind" home repos opencode
+  assert_links "$expected_kind" home repos aitools
   assert_no_dangling_symlinks
   assert_core_files_exist
   assert_neovim_home_manager_files
@@ -329,7 +329,7 @@ run_external_flake_module_mode() {
   activation="$(build_external_consumer_activation "$mode")"
   "$activation/activate"
   assert_idempotent_activation "$activation"
-  assert_links store home repos opencode
+  assert_links store home repos aitools
   assert_no_dangling_symlinks
   assert_core_files_exist
   assert_neovim_home_manager_files

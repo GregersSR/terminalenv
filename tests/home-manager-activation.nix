@@ -9,7 +9,7 @@ let
   pkgs = flake.inputs.nixpkgs.legacyPackages.${builtins.currentSystem};
   ownpkgs = flake.outputs.packages.${builtins.currentSystem};
   lib = pkgs.lib;
-  allPackages = [ "home" "repos" "opencode" ];
+  allPackages = [ "home" "repos" "aitools" ];
   isStore = mode == "store";
 in
 (flake.inputs.home-manager.lib.homeManagerConfiguration {
