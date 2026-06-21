@@ -2,7 +2,7 @@
 alias -- '-'='cd -'
 
 # Source shared aliases
-shared_aliases="$(cd "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../shell" >/dev/null 2>&1 && pwd)/aliases"
+shared_aliases="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && cd ../shell && pwd 2>/dev/null)/aliases"
 if [ -f "$shared_aliases" ]; then
   source "$shared_aliases"
 else
