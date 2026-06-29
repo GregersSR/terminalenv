@@ -41,9 +41,8 @@ Recommended split:
 
 `store` mode works without a checkout.
 
-`out-of-store` mode needs a checkout unless you override:
-
-- `dotfiles.links.repoRoot`
+`out-of-store` mode uses string filesystem paths in `dotfiles.packages`; those
+directories must exist at activation time.
 
 ## Tests
 

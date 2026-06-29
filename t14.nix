@@ -1,10 +1,10 @@
-ownPkgs: { config, lib, pkgs, ... }:
+{ ownPkgs, dotpkgs }: { config, lib, pkgs, ... }:
 
-{
-  dotfiles.links = {
-    storePackages = [ ];
-    outOfStorePackages = [ "home" "repos" "aitools" ];
-  };
+let
+  dotpkgsDir = "/home/gsr/terminalenv/dotpkgs";
+in {
+  dotfiles.packages = lib.mapAttrs (n: _: "${dotpkgsDir}/${n}") dotpkgs;
+
   home = {
     username = "gsr";
     homeDirectory = "/home/gsr";

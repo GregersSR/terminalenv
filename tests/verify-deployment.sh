@@ -200,13 +200,12 @@ build_external_consumer_activation() {
   rm -rf "$consumer_root"
   mkdir -p "$consumer_root"
 
-  local allPackages='[ "home" "repos" "aitools" ]'
   case "$mode" in
     out-of-store)
-      overrides="dotfiles.links.storePackages = lib.mkForce [ ]; dotfiles.links.outOfStorePackages = lib.mkForce ${allPackages};"
+      overrides="dotfiles.packages = lib.mkForce (lib.mapAttrs (n: _: \"${HOME}/terminalenv/dotpkgs/\${n}\") dotpkgs);"
       ;;
     store)
-      overrides="dotfiles.links.storePackages = lib.mkForce ${allPackages}; dotfiles.links.outOfStorePackages = lib.mkForce [ ];"
+      overrides='dotfiles.packages = lib.mkForce dotpkgs;'
       ;;
     *)
       fail "Unknown external consumer mode: $mode"
@@ -226,6 +225,7 @@ build_external_consumer_activation() {
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.\${system};
+      dotpkgs = dotfiles.dotpkgs;
     in {
       homeConfigurations.tester = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
@@ -260,7 +260,7 @@ assert_out_of_store_activation_failure() {
 
   output="$({ "$activation/activate"; } 2>&1 || true)"
   case "$output" in
-    *"Out-of-store dotfiles mode requires a local checkout at $HOME/terminalenv."*)
+    *"Dotfiles package not found:"*)
       ;;
     *)
       fail "Missing expected out-of-store activation failure message. Output was: $output"

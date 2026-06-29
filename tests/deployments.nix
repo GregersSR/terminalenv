@@ -1,13 +1,16 @@
-{ pkgs, homeManager, modules, nixpkgsFlake, ownPkgs }:
+{ pkgs, homeManager, modules, nixpkgsFlake, ownPkgs, dotpkgs }:
 
 let
+  lib = pkgs.lib;
   repoRoot = ../.;
-
-  allPackages = [ "home" "repos" "aitools" ];
+  dotpkgsRoot = "${builtins.toString repoRoot}/dotpkgs";
 
   mkCheckActivation = mode:
     let
       isStore = mode == "store";
+      packages = if isStore
+        then dotpkgs
+        else lib.mapAttrs (n: _: "${dotpkgsRoot}/${n}") dotpkgs;
     in
     (homeManager.lib.homeManagerConfiguration {
       inherit pkgs;
@@ -23,9 +26,7 @@ let
           home.homeDirectory = "/tmp/terminalenv-test-home";
           home.stateVersion = "24.11";
 
-          dotfiles.links.storePackages = lib.mkForce (if isStore then allPackages else [ ]);
-          dotfiles.links.outOfStorePackages = lib.mkForce (if isStore then [ ] else allPackages);
-          dotfiles.links.repoRoot = lib.mkForce (builtins.toString repoRoot);
+          dotfiles.packages = lib.mkForce packages;
         })
       ];
     }).activationPackage;

@@ -23,16 +23,21 @@
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
       lib = pkgs.lib;
+      dotpkgs =
+        let entries = builtins.readDir ./dotpkgs;
+        in lib.genAttrs
+          (lib.attrNames (lib.filterAttrs (_: v: v == "directory") entries))
+          (name: ./dotpkgs/${name});
       repoPkgs = import ./packages pkgs;
       ownPkgs = cli-tools.packages.${system} // mypkgs.packages.${system} // repoPkgs;
       nixpkgsPin = import ./nixpkgs-registry.nix nixpkgs;
       modules = {
         dotfiles = ./dotfiles.nix;
         common = ./common.nix;
-        t14 = import ./t14.nix ownPkgs;
+        t14 = import ./t14.nix { inherit ownPkgs dotpkgs; };
       };
       deploymentTests = import ./tests/deployments.nix {
-        inherit pkgs modules ownPkgs;
+        inherit pkgs modules ownPkgs dotpkgs;
         nixpkgsFlake = nixpkgs;
         homeManager = home-manager;
       };
@@ -55,6 +60,6 @@
       apps.${system}.test-deployments = deploymentTests.test;
       packages.${system} = lib.removeAttrs ownPkgs [ "pythonPackages" ];
       checks.${system}.deployment-tests = deploymentTests.check;
-      inherit modules;
+      inherit modules dotpkgs;
     };
 }

@@ -9,8 +9,11 @@ let
   pkgs = flake.inputs.nixpkgs.legacyPackages.${builtins.currentSystem};
   ownpkgs = flake.outputs.packages.${builtins.currentSystem};
   lib = pkgs.lib;
-  allPackages = [ "home" "repos" "aitools" ];
+  dotpkgs = flake.outputs.dotpkgs;
   isStore = mode == "store";
+  packages = if isStore
+    then dotpkgs
+    else lib.mapAttrs (n: _: "${repoRoot}/dotpkgs/${n}") dotpkgs;
 in
 (flake.inputs.home-manager.lib.homeManagerConfiguration {
   inherit pkgs;
@@ -25,9 +28,7 @@ in
       home.homeDirectory = homeDirectory;
       home.stateVersion = "24.11";
 
-      dotfiles.links.storePackages = lib.mkForce (if isStore then allPackages else [ ]);
-      dotfiles.links.outOfStorePackages = lib.mkForce (if isStore then [ ] else allPackages);
-      dotfiles.links.repoRoot = lib.mkForce repoRoot;
+      dotfiles.packages = lib.mkForce packages;
 
       home.packages = [ ownpkgs.repos ];
     })
