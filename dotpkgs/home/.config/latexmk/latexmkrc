@@ -1,1 +1,10 @@
 $aux_dir = '.aux';
+@default_excluded_files = ( "_*.tex", "macros.tex" );
+
+# pdf_mode = 4 means use LuaTeX
+$pdf_mode = 4; $dvi_mode = $postscript_mode = 0;
+
+# add synctex and use nonstop mode. This function sets the args for all engines
+set_tex_cmds('-interaction=nonstopmode -synctex=1 %O %S');
+
+$clean_ext = 'synctex.gz';

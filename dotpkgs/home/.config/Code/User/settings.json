@@ -4,7 +4,6 @@
     "window.openFoldersInNewWindow": "on",
     "keyboard.dispatch": "keyCode",
     "files.autoSave": "onFocusChange",
-    "editor.minimap.enabled": false,
     "files.insertFinalNewline": true,
     "latex-workshop.latex.tools": [
 
@@ -134,6 +133,8 @@
         }
     ],
     "latex-workshop.latex.recipes": [
+        
+
         {
             "name": "latexmk",
             "tools": [
@@ -195,7 +196,7 @@
             ]
         }
     ],
-    "latex-workshop.latex.recipe.default": "latexmk",
+    "latex-workshop.latex.recipe.default": "latexmk (latexmkrc)",
     "latex-workshop.synctex.synctexjs.enabled": true,
     "latex-workshop.synctex.afterBuild.enabled": true,
     "latex-workshop.view.outline.sync.viewer": true,
@@ -221,5 +222,7 @@
     "editor.rulers": [
         80,
         120
-    ]
+    ],
+    "latex-workshop.latex.autoBuild.run": "onSave",
+    "editor.minimap.enabled": false
 }
