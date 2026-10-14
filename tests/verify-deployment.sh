@@ -79,6 +79,14 @@ seed_checkout() {
   rm -rf "$HOME/terminalenv/result"
 }
 
+seed_legacy_stow_links() {
+  mkdir -p "$HOME/.config"
+  ln -s terminalenv/home/.bashrc "$HOME/.bashrc"
+  ln -s ../terminalenv/home/.config/bash "$HOME/.config/bash"
+  ln -s ../terminalenv/opencode/.config/opencode "$HOME/.config/opencode"
+  ln -s ../terminalenv/repos/.config/repos "$HOME/.config/repos"
+}
+
 assert_core_files_exist() {
   [[ -f "$HOME/.bashrc" ]] || fail "Missing ~/.bashrc"
   [[ -f "$HOME/.profile" ]] || fail "Missing ~/.profile"
@@ -271,11 +279,12 @@ assert_out_of_store_activation_failure() {
 run_script_mode() {
   setup_home script
   seed_checkout
+  seed_legacy_stow_links
   ensure_stow
   log "Testing native symlink deployment"
   PATH="$STOW_BIN_DIR:$PATH" bash "$HOME/terminalenv/mksymlinks.sh" repos
   assert_idempotent_script
-  assert_links runtime home aitools
+  assert_links runtime home repos aitools
   assert_no_dangling_symlinks
   assert_core_files_exist
   assert_profile_works

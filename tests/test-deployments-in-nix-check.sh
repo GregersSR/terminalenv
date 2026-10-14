@@ -70,6 +70,14 @@ reset_home() {
   mkdir -p "$TEST_HOME"
 }
 
+seed_legacy_stow_links() {
+  mkdir -p "$TEST_HOME/.config"
+  ln -s terminalenv/home/.bashrc "$TEST_HOME/.bashrc"
+  ln -s ../terminalenv/home/.config/bash "$TEST_HOME/.config/bash"
+  ln -s ../terminalenv/opencode/.config/opencode "$TEST_HOME/.config/opencode"
+  ln -s ../terminalenv/repos/.config/repos "$TEST_HOME/.config/repos"
+}
+
 shell_env() {
   export HOME="$TEST_HOME"
   export USER=tester
@@ -159,9 +167,10 @@ run_script_mode() {
   reset_home
   shell_env
   seed_checkout
+  seed_legacy_stow_links
   bash "$TEST_HOME/terminalenv/mksymlinks.sh"
   bash "$TEST_HOME/terminalenv/mksymlinks.sh" >/dev/null
-  assert_links runtime home aitools
+  assert_links runtime home repos aitools
   assert_core_paths
   assert_profile_works
   assert_bash_works
