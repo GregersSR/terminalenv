@@ -1,15 +1,15 @@
 # Dotfiles
 
-Dotfiles repo with top-level Stow packages:
+Dotfiles repo with Stow packages under `dotpkgs/`:
 
 - native deployment uses `stow`
 - Home Manager supports `out-of-store` and `store` deployments
 
 ## Layout
 
-- `home/`: primary files laid out exactly as they should appear under `$HOME`
-- `opencode/`: Opencode-specific config layered into `$HOME`
-- `repos/`: repo tooling layered into `$HOME`
+- `dotpkgs/home/`: primary files laid out exactly as they should appear under `$HOME`
+- `dotpkgs/aitools/`: AI tool config layered into `$HOME`
+- `dotpkgs/repos/`: repo tooling layered into `$HOME`
 - `mksymlinks.sh`: native Stow wrapper
 - `dotfiles.nix`: Home Manager deployment policy
 - `common.nix`: general Home Manager config
@@ -19,17 +19,18 @@ Dotfiles repo with top-level Stow packages:
 Native / non-Nix:
 
 - keep a checkout at `~/terminalenv`
-- run `mksymlinks.sh` to restow the default native packages (`home/` and `opencode/`)
+- install GNU Stow
+- run `bash ~/terminalenv/mksymlinks.sh` to restow every package under `dotpkgs/`
 
 Home Manager `out-of-store`:
 
-- restow the configured top-level packages from the checkout during activation
+- restow the configured `dotpkgs/` packages from the checkout during activation
 - requires a local checkout at `~/terminalenv` by default
 - if no checkout exists, activation fails with a clear error
 
 Home Manager `store`:
 
-- materialize files from the configured top-level packages into the Nix store
+- materialize files from the configured `dotpkgs/` packages into the Nix store
 - works for flake-only consumers with no local checkout
 
 ## External Consumers

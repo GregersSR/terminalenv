@@ -3,7 +3,7 @@
 ## Shape
 - Keep this file up to date when future sessions learn important repo-specific behavior, but only add guidance an agent would likely miss.
 - This is a dotfiles/Home Manager flake, not an app. Stow package roots live under `dotpkgs/` and are laid out as `$HOME` contents: `dotpkgs/home/`, `dotpkgs/repos/`, `dotpkgs/aitools/`.
-- `mksymlinks.sh` is the native Stow entrypoint. With no args it restows all packages found in `dotpkgs/`; extra args are appended, so use `bash mksymlinks.sh repos` to include repo tooling explicitly (though it's already auto-detected).
+- `mksymlinks.sh` is the native Stow entrypoint. With no args it restows all packages found in `dotpkgs/`; extra args are appended and deduplicated.
 - `dotfiles.nix` owns deployment mechanics. `dotfiles.packages` is an attrset of name → source: Nix paths (e.g. `dotpkgs.home`) deploy via `home.file` from the store; string filesystem paths (e.g. `"/path/to/dotpkgs/name"`) deploy via stow, with the parent dir as `--dir`. The flake exposes `dotpkgs` as the automagic attrset of upstream store paths.
 - `common.nix` is shared Home Manager config; `t14.nix` is the `gsr` machine/user layer using external `cli-tools`/`mypkgs` packages.
 - Fish source snippets live under `dotpkgs/home/.config/fish/` and are wired into Home Manager from `common.nix`.
