@@ -14,6 +14,7 @@ in {
         ownPkgs.pythonPackages.zotero-mcp-server
         ownPkgs.repos
         ownPkgs.opencode
+        ownPkgs.opencode-desktop
         pkgs.nodejs-slim
         pkgs.nodejs-slim.npm
     ];
