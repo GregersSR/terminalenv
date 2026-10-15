@@ -76,7 +76,7 @@ stdenv.mkDerivation (finalAttrs: {
     # NOTE: Required else we get errors that our fixed-output derivation references store paths
     dontFixup = true;
 
-    outputHash = "sha256-r3S0HHNk4TeTHEd8vbvgF+AXl5lJAyrTq+u2T3W0PdA=";
+    outputHash = "sha256-zo6iJtquA0BWr1PXq1wFKIYssXe1zj/eOeUpkp8FeoA=";
     outputHashAlgo = "sha256";
     outputHashMode = "recursive";
   };
