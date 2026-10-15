@@ -13,6 +13,7 @@ in {
         ownPkgs.starship
         ownPkgs.pythonPackages.zotero-mcp-server
         ownPkgs.repos
+        ownPkgs.opencode
         pkgs.nodejs-slim
         pkgs.nodejs-slim.npm
     ];

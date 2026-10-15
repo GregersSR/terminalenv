@@ -1,1 +1,1 @@
-pkgs: pkgs.callPackage ./starship.nix {}
+pkgs: pkgs.callPackage ./package.nix {}
