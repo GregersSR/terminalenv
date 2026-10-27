@@ -12,6 +12,7 @@ in {
     packages = [
         ownPkgs.starship
         ownPkgs.repos
+        ownPkgs."dtu-learn"
         pkgs.opencode-desktop
         pkgs.opencode
         pkgs.nodejs-slim
