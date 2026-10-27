@@ -17,6 +17,7 @@ in {
         ownPkgs.starship
         ownPkgs.repos
         opencode-desktop
+        ownPkgs."dtu-learn"
         pkgs.opencode
         pkgs.nodejs-slim
         pkgs.nodejs-slim.npm
