@@ -2,6 +2,10 @@
 
 let
   dotpkgsDir = "/home/gsr/terminalenv/dotpkgs";
+  # Electron refuses to start in this environment: the SUID sandbox helper in
+  # the Nix store is not set up with the 4755 mode Electron requires, and the
+  # namespace sandbox cannot be used here. Disable it.
+  opencode-desktop = pkgs.opencode-desktop.override { commandLineArgs = "--no-sandbox"; };
 in {
   dotfiles.packages = lib.mapAttrs (n: _: "${dotpkgsDir}/${n}") dotpkgs;
 
@@ -12,7 +16,7 @@ in {
     packages = [
         ownPkgs.starship
         ownPkgs.repos
-        pkgs.opencode-desktop
+        opencode-desktop
         pkgs.opencode
         pkgs.nodejs-slim
         pkgs.nodejs-slim.npm
