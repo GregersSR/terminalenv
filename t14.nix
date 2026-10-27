@@ -11,10 +11,9 @@ in {
     stateVersion = "24.11";
     packages = [
         ownPkgs.starship
-        ownPkgs.pythonPackages.zotero-mcp-server
         ownPkgs.repos
-        ownPkgs.opencode
-        ownPkgs.opencode-desktop
+        pkgs.opencode-desktop
+        pkgs.opencode
         pkgs.nodejs-slim
         pkgs.nodejs-slim.npm
     ];

@@ -22,6 +22,7 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
+      patchlib = import ./patch.nix { inherit pkgs; inherit system; };
       lib = pkgs.lib;
       dotpkgs =
         let entries = builtins.readDir ./dotpkgs;
@@ -55,7 +56,6 @@
         ];
 
         # Optionally use extraSpecialArgs
-        # to pass through arguments to home.nix
       };
       apps.${system}.test-deployments = deploymentTests.test;
       packages.${system} = lib.removeAttrs ownPkgs [ "pythonPackages" ];
