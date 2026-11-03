@@ -1,5 +1,25 @@
 {
   "nodes": {
+    "claude-desktop": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1793334096,
+        "narHash": "sha256-h1xLHKoMpn8Z1ggVefWUE1JLKjE1pOOeYaIPrbQugYk=",
+        "owner": "tomsch",
+        "repo": "claude-desktop-nix",
+        "rev": "b94e2b0b1c08fb8443a66245fed66fd5b8e213f0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tomsch",
+        "repo": "claude-desktop-nix",
+        "type": "github"
+      }
+    },
     "cli-tools": {
       "inputs": {
         "nixpkgs": [
@@ -78,6 +98,7 @@
     },
     "root": {
       "inputs": {
+        "claude-desktop": "claude-desktop",
         "cli-tools": "cli-tools",
         "home-manager": "home-manager",
         "mypkgs": "mypkgs",

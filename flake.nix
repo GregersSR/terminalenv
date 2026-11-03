@@ -16,12 +16,19 @@
       url = "github:GregersSR/mypkgs";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    claude-desktop = {
+      url = "github:tomsch/claude-desktop-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { nixpkgs, home-manager, cli-tools, mypkgs, ... }:
+  outputs = { nixpkgs, home-manager, cli-tools, mypkgs, claude-desktop, ... }:
     let
       system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
+      pkgs = import nixpkgs {
+        inherit system;
+        config.allowUnfreePredicate = pkg: lib.getName pkg == "claude-code";
+      };
       patchlib = import ./patch.nix { inherit pkgs; inherit system; };
       lib = pkgs.lib;
       dotpkgs =
@@ -35,7 +42,7 @@
       modules = {
         dotfiles = ./dotfiles.nix;
         common = ./common.nix;
-        t14 = import ./t14.nix { inherit ownPkgs dotpkgs; };
+        t14 = import ./t14.nix { inherit ownPkgs dotpkgs claude-desktop; };
       };
       deploymentTests = import ./tests/deployments.nix {
         inherit pkgs modules ownPkgs dotpkgs;

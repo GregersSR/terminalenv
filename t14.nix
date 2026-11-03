@@ -1,4 +1,4 @@
-{ ownPkgs, dotpkgs }: { config, lib, pkgs, ... }:
+{ ownPkgs, dotpkgs, claude-desktop }: { config, lib, pkgs, ... }:
 
 let
   dotpkgsDir = "/home/gsr/terminalenv/dotpkgs";
@@ -18,6 +18,8 @@ in {
         ownPkgs.repos
         opencode-desktop
         ownPkgs."dtu-learn"
+        claude-desktop.packages.${pkgs.stdenv.hostPlatform.system}.default
+        pkgs.claude-code
         pkgs.opencode
         pkgs.nodejs-slim
         pkgs.nodejs-slim.npm
