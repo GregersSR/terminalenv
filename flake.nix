@@ -27,6 +27,7 @@
       system = "x86_64-linux";
       pkgs = import nixpkgs {
         inherit system;
+        overlays = [ (import ./overlays.nix) ];
         config.allowUnfreePredicate = pkg: lib.getName pkg == "claude-code";
       };
       patchlib = import ./patch.nix { inherit pkgs; inherit system; };
